@@ -23,8 +23,10 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.1",
     "@electron-toolkit/utils": "^4.0.0",
+    "@tailwindcss/vite": "^4.0.15",
     "electron-store": "^8.1.0",
     "styled-jsx": "^5.1.6",
+    "tailwindcss": "^4.0.15",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
@@ -35,6 +37,7 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
+    "daisyui": "^5.0.0-beta.9",
     "electron": "^34.2.0",
     "electron-builder": "^25.1.8",
     "electron-vite": "^3.0.0",
