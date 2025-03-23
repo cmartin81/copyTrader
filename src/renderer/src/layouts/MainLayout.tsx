@@ -1,6 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useState } from 'react'
-import electronLogo from '../assets/electron.svg'
 
 interface MenuItem {
   name: string
@@ -9,7 +8,8 @@ interface MenuItem {
 }
 
 const MainLayout = (): JSX.Element => {
-  const [username] = useState('John Trader')
+  const [username] = useState('Admin User')
+  const [email] = useState('admin@xlink.com')
 
   const menuItems: MenuItem[] = [
     {
@@ -17,7 +17,7 @@ const MainLayout = (): JSX.Element => {
       path: '/',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h8m-8 6h16" />
         </svg>
       )
     },
@@ -61,11 +61,11 @@ const MainLayout = (): JSX.Element => {
   ]
 
   return (
-    <div className="drawer lg:drawer-open">
+    <div className="drawer md:drawer-open">
       <input id="drawer-toggle" type="checkbox" className="drawer-toggle" />
       <div className="drawer-content flex flex-col">
         {/* Navbar */}
-        <div className="navbar bg-base-300 lg:hidden">
+        <div className="navbar bg-base-300 md:hidden">
           <div className="flex-none">
             <label htmlFor="drawer-toggle" className="btn btn-square btn-ghost">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="inline-block w-6 h-6 stroke-current">
@@ -85,46 +85,53 @@ const MainLayout = (): JSX.Element => {
       {/* Sidebar */}
       <div className="drawer-side">
         <label htmlFor="drawer-toggle" className="drawer-overlay"></label>
-        <aside className="bg-base-300 w-80 min-h-full flex flex-col">
+        <aside className="bg-neutral w-52 h-full flex flex-col justify-between">
           {/* Logo and app name */}
-          <div className="p-6 border-b border-base-content/10">
-            <div className="flex items-center gap-3">
-              <img src={electronLogo} alt="Logo" className="w-10 h-10" />
-              <div>
-                <h2 className="text-xl font-bold">CopyTrader</h2>
-                <p className="text-sm opacity-70">TradersVenture</p>
-              </div>
-            </div>
-          </div>
-          
-          {/* Menu items */}
-          <ul className="menu p-4 gap-2 flex-1">
-            {menuItems.map((item) => (
-              <li key={item.path}>
-                <NavLink
-                  to={item.path}
-                  className={({ isActive }) =>
-                    isActive ? 'active bg-primary text-primary-content' : ''
-                  }
-                >
-                  {item.icon}
-                  {item.name}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-          
-          {/* User info */}
-          <div className="border-t border-base-content/10 p-4">
-            <div className="flex items-center gap-3">
-              <div className="avatar placeholder">
-                <div className="bg-neutral text-neutral-content rounded-full w-10">
-                  <span>{username.charAt(0)}</span>
+          <div>
+            <div className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-600 text-white rounded-lg w-10 h-10 flex items-center justify-center font-bold">
+                  XL
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">CopyTrader</h2>
+                  <p className="text-xs text-gray-400">TradersVantage</p>
                 </div>
               </div>
+            </div>
+            
+            {/* Menu items */}
+            <ul className="menu p-2 gap-1">
+              {menuItems.map((item) => (
+                <li key={item.path}>
+                  <NavLink
+                    to={item.path}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-4 py-2 rounded-lg w-full ${isActive ? 'bg-base-300 text-white border-1 border-blue-400' : 'text-gray-400 hover:text-white'}`
+                    }
+                  >
+                    {item.icon}
+                    {item.name}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+          
+          {/* User info */}
+          <div className="p-4 mt-auto">
+            <div className="flex items-center gap-3">
+              <div className="bg-neutral-700 text-white rounded-lg w-8 h-8 flex items-center justify-center font-bold text-sm">
+                AD
+              </div>
               <div>
-                <p className="font-medium">{username}</p>
-                <p className="text-xs opacity-70">Logged in</p>
+                <p className="font-medium text-sm text-white">{username}</p>
+                <p className="text-xs text-gray-400">{email}</p>
+              </div>
+              <div className="ml-auto">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
             </div>
           </div>
