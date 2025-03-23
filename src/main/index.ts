@@ -2,10 +2,20 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { getAppState, updateAppCounter } from './store'
+import { SessionState } from '../shared/types'
+
+// Session state (non-persistent, reset on app restart)
+const sessionState: SessionState = {
+  sessionCounter: 0
+}
+
+// Reference to main window for broadcasting from interval
+let mainWindow: BrowserWindow | null = null
 
 function createWindow(): void {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
@@ -18,7 +28,7 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+    mainWindow?.show()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -33,6 +43,62 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+  
+  // Function to broadcast state updates to all renderer processes
+  const broadcastState = (): void => {
+    mainWindow?.webContents.send('state-updated', sessionState, getAppState())
+  }
+  
+  // Set up IPC handlers for state management
+  ipcMain.handle('get-initial-state', () => {
+    return {
+      sessionState,
+      appState: getAppState()
+    }
+  })
+  
+  // Session counter handlers
+  ipcMain.on('increment-session-counter', () => {
+    sessionState.sessionCounter++
+    console.log(`[Main] Session counter incremented to: ${sessionState.sessionCounter}`)
+    broadcastState()
+  })
+  
+  ipcMain.on('decrement-session-counter', () => {
+    sessionState.sessionCounter--
+    console.log(`[Main] Session counter decremented to: ${sessionState.sessionCounter}`)
+    broadcastState()
+  })
+  
+  // App counter handlers
+  ipcMain.on('increment-app-counter', () => {
+    const appState = getAppState()
+    const newValue = appState.appCounter + 1
+    updateAppCounter(newValue)
+    broadcastState()
+  })
+  
+  ipcMain.on('decrement-app-counter', () => {
+    const appState = getAppState()
+    const newValue = appState.appCounter - 1
+    updateAppCounter(newValue)
+    broadcastState()
+  })
+  
+  // Set up interval to update counters every 10 seconds
+  setInterval(() => {
+    // Update session counter
+    sessionState.sessionCounter += 10
+    console.log(`[Main] Auto-updated session counter to: ${sessionState.sessionCounter}`)
+    
+    // Update app counter
+    const appState = getAppState()
+    const newValue = appState.appCounter + 10
+    updateAppCounter(newValue)
+    
+    // Broadcast the updates to the renderer
+    broadcastState()
+  }, 10000)
 }
 
 // This method will be called when Electron has finished
@@ -48,9 +114,6 @@ app.whenReady().then(() => {
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
-
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
 
   createWindow()
 
@@ -68,6 +131,11 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+// Clear the interval when the app is about to quit
+app.on('before-quit', () => {
+  mainWindow = null
 })
 
 // In this file you can include the rest of your app's specific main process
