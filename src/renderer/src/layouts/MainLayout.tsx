@@ -62,144 +62,130 @@ const MainLayout = (): JSX.Element => {
   ]
 
   return (
-    <div className="drawer md:drawer-open">
-      <input id="drawer-toggle" type="checkbox" className="drawer-toggle" />
-      <div className="drawer-content flex flex-col">
-        {/* Navbar */}
-        <div className="navbar bg-base-300 md:hidden">
-          <div className="flex-none">
-            <label htmlFor="drawer-toggle" className="btn btn-square btn-ghost">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="inline-block w-6 h-6 stroke-current">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
-              </svg>
-            </label>
-          </div>
-          <div className="flex-1 px-2 mx-2 font-bold">CopyTrader</div>
-        </div>
-        
-        {/* Main content */}
-        <main className="flex-1 p-6 bg-base-200 min-h-screen overflow-y-auto">
-          <Outlet />
-        </main>
-      </div>
-      
+    <div className="flex h-screen">
       {/* Sidebar */}
-      <div className="drawer-side">
-        <label htmlFor="drawer-toggle" className="drawer-overlay"></label>
-        <aside className="bg-gradient-to-b from-background-dark/95 to-background-dark/90 backdrop-blur-2xl border-r border-white/[0.02] w-64 h-full flex flex-col justify-between">
-          {/* Logo and app name */}
-          <div>
-            <div className="p-4 mb-8">
-              <div className="flex items-center space-x-5">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 ring-1 ring-white/10 ">
-                  <span className="text-white font-bold text-lg tracking-wider">XL</span>
-                </div>
-                <div className="flex flex-col pl-3">
-                  <span className="text-white font-semibold text-lg tracking-wide">CopyTrader</span>
-                  <span className="text-xs text-blue-400/80 font-medium tracking-wider">TradersVantage</span>
-                </div>
+      <aside className="w-64 bg-gradient-to-b from-background-dark/95 to-background-dark/90 backdrop-blur-2xl border-r border-white/[0.02] flex flex-col justify-between">
+        {/* Logo and app name */}
+        <div>
+          <div className="p-4 mb-8">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 ring-1 ring-white/10">
+                <span className="text-white font-bold text-lg tracking-wider">XL</span>
+              </div>
+              <div className="flex flex-col pl-3">
+                <span className="text-white font-semibold text-lg tracking-wide">CopyTrader</span>
+                <span className="text-xs text-blue-400/80 font-medium tracking-wider">TradersVantage</span>
               </div>
             </div>
-            
-            {/* Menu items */}
-            <nav className="space-y-1.5 px-2">
-              {menuItems.map((item) => (
-                <li key={item.path} className="list-none">
-                  <NavLink
-                    to={item.path}
-                    className={({ isActive }) =>
-                      `flex items-center space-x-5 px-4 py-3 rounded-xl transition-all duration-200 group relative border ${
-                        isActive
-                          ? 'bg-gradient-to-r from-blue-500/10 to-blue-500/5 text-white border-white/[0.08]'
-                          : 'text-gray-400 hover:bg-white/[0.02] hover:text-white border-transparent hover:border-white/[0.02]'
-                      }`
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <div className={`${isActive ? 'text-blue-400' : 'text-gray-400 group-hover:text-white'} transition-colors`}>
-                          {item.icon}
-                        </div>
-                        <span className="font-medium tracking-wide text-sm pl-2">{item.name}</span>
-                        {isActive && (
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1">
-                            <div className="w-1 h-1 rounded-full bg-blue-400"></div>
-                            <div className="w-1 h-1 rounded-full bg-blue-400/50"></div>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </NavLink>
-                </li>
-              ))}
-            </nav>
           </div>
           
-          {/* User info */}
-          <div className="p-4 mt-auto border-t border-white/[0.02] pt-4 pb-6">
-            <button
-              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="w-full flex items-center space-x-5 px-4 py-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-200 border border-white/[0.02] group"
+          {/* Menu items */}
+          <nav className="space-y-1.5 px-2">
+            {menuItems.map((item) => (
+              <li key={item.path} className="list-none">
+                <NavLink
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `flex items-center px-4 py-3 rounded-xl transition-all duration-200 group relative border ${
+                      isActive
+                        ? 'bg-gradient-to-r from-blue-500/10 to-blue-500/5 text-white border-white/[0.08]'
+                        : 'text-gray-400 hover:bg-white/[0.02] hover:text-white border-transparent hover:border-white/[0.02]'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <div className={`${isActive ? 'text-blue-400' : 'text-gray-400 group-hover:text-white'} transition-colors`}>
+                        {item.icon}
+                      </div>
+                      <span className="font-medium tracking-wide text-sm pl-2">{item.name}</span>
+                      {isActive && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1">
+                          <div className="w-1 h-1 rounded-full bg-blue-400"></div>
+                          <div className="w-1 h-1 rounded-full bg-blue-400/50"></div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              </li>
+            ))}
+          </nav>
+        </div>
+        
+        {/* User info */}
+        <div className="p-4 mt-auto border-t border-white/[0.02] pt-4 pb-6">
+          <button
+            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+            className="w-full flex items-center px-4 py-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-200 border border-white/[0.02] group"
+          >
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center ring-1 ring-white/10">
+              <span className="text-white text-sm font-medium">AD</span>
+            </div>
+            <div className="flex-1 text-left pl-3">
+              <div className="text-sm font-medium text-white tracking-wide group-hover:text-blue-400 transition-colors">{username}</div>
+              <div className="text-xs text-gray-500">{email}</div>
+            </div>
+            <svg
+              className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center ring-1 ring-white/10">
-                <span className="text-white text-sm font-medium">AD</span>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          {/* User Menu Dropdown */}
+          {isUserMenuOpen && (
+            <div className="absolute bottom-28 left-4 right-4 bg-background-dark/95 backdrop-blur-xl rounded-xl border border-white/[0.02] shadow-xl shadow-black/20 overflow-hidden">
+              <div className="py-1.5">
+                <button className="w-full flex items-center px-4 py-2.5 text-sm text-gray-400 hover:bg-white/[0.02] hover:text-white transition-colors group">
+                  <svg
+                    className="w-4 h-4 text-gray-500 group-hover:text-blue-400 transition-colors"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Restart</span>
+                </button>
+                <button className="w-full flex items-center px-4 py-2.5 text-sm text-gray-400 hover:bg-white/[0.02] hover:text-white transition-colors group">
+                  <svg
+                    className="w-4 h-4 text-gray-500 group-hover:text-blue-400 transition-colors"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  <span>Logout</span>
+                </button>
+                <button className="w-full flex items-center px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors group border-t border-white/[0.02]">
+                  <svg
+                    className="w-4 h-4 text-red-400/70 group-hover:text-red-300 transition-colors"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" />
+                  </svg>
+                  <span>Shutdown</span>
+                </button>
               </div>
-              <div className="flex-1 text-left pl-3">
-                <div className="text-sm font-medium text-white tracking-wide group-hover:text-blue-400 transition-colors">{username}</div>
-                <div className="text-xs text-gray-500">{email}</div>
-              </div>
-              <svg
-                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            
-            {/* User Menu Dropdown */}
-            {isUserMenuOpen && (
-              <div className="absolute bottom-28 left-4 right-4 bg-background-dark/95 backdrop-blur-xl rounded-xl border border-white/[0.02] shadow-xl shadow-black/20 overflow-hidden">
-                <div className="py-1.5">
-                  <button className="w-full flex items-center space-x-5 px-4 py-2.5 text-sm text-gray-400 hover:bg-white/[0.02] hover:text-white transition-colors group">
-                    <svg
-                      className="w-4 h-4 text-gray-500 group-hover:text-blue-400 transition-colors"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    <span>Restart</span>
-                  </button>
-                  <button className="w-full flex items-center space-x-5 px-4 py-2.5 text-sm text-gray-400 hover:bg-white/[0.02] hover:text-white transition-colors group">
-                    <svg
-                      className="w-4 h-4 text-gray-500 group-hover:text-blue-400 transition-colors"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    <span>Logout</span>
-                  </button>
-                  <button className="w-full flex items-center space-x-5 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors group border-t border-white/[0.02]">
-                    <svg
-                      className="w-4 h-4 text-red-400/70 group-hover:text-red-300 transition-colors"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" />
-                    </svg>
-                    <span>Shutdown</span>
-                  </button>
-                </div>
-              </div>
-            )}
+            </div>
+          )}
+        </div>
+      </aside>
+      
+      {/* Main content */}
+      <div className="flex-1 flex flex-col">
+        <main className="flex-1 p-6 bg-base-200 overflow-y-auto">
+          <div className="max-w-7xl mx-auto">
+            <Outlet />
           </div>
-        </aside>
+        </main>
       </div>
     </div>
   )
