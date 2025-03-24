@@ -1,9 +1,21 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 const Settings: React.FC = () => {
   const [ngrokAuthToken, setNgrokAuthToken] = useState('')
   const [ngrokUrl, setNgrokUrl] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [currentTheme, setCurrentTheme] = useState('dark')
+
+  useEffect(() => {
+    // Get current theme from document
+    const theme = document.documentElement.getAttribute('data-theme') || 'dark'
+    setCurrentTheme(theme)
+  }, [])
+
+  const handleThemeChange = (theme: string): void => {
+    document.documentElement.setAttribute('data-theme', theme)
+    setCurrentTheme(theme)
+  }
 
   const handleSaveSettings = (): void => {
     // This would typically save to a config file or database
@@ -86,7 +98,25 @@ const Settings: React.FC = () => {
         <div className="card-body">
           <h2 className="card-title mb-4">Application Settings</h2>
           
-          <div className="divider">Notifications</div>
+          <div className="divider">Appearance</div>
+          
+          <div className="form-control w-full max-w-md">
+            <label className="label">
+              <span className="label-text">Theme</span>
+            </label>
+            <select 
+              className="select select-bordered w-full"
+              value={currentTheme}
+              onChange={(e) => handleThemeChange(e.target.value)}
+            >
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+              <option value="wireframe">Wireframe</option>
+              <option value="aqua">Aqua</option>
+            </select>
+          </div>
+          
+          <div className="divider mt-6">Notifications</div>
           
           <div className="form-control">
             <label className="label cursor-pointer justify-start gap-4">

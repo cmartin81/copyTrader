@@ -28,7 +28,7 @@ function App(): JSX.Element {
   
   useEffect(() => {
     // Set dark theme by default
-    document.documentElement.setAttribute('data-theme', 'dark')
+    document.documentElement.setAttribute('data-theme', 'wireframe')
   }, [])
   
   // Show loading until store is initialized
