@@ -113,6 +113,8 @@ const Settings: React.FC = () => {
               <option value="light">Light</option>
               <option value="wireframe">Wireframe</option>
               <option value="aqua">Aqua</option>
+              <option value="fantasy">Fantasy</option>
+              <option value="synthwave">Synthwave</option>
             </select>
           </div>
           
