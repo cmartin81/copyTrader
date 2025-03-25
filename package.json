@@ -18,22 +18,31 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
-    "build:linux": "electron-vite build && electron-builder --linux"
+    "build:linux": "electron-vite build && electron-builder --linux",
+    "test": "jest --projects unit",
+    "test:watch": "jest --projects unit --watch",
+    "test:coverage": "jest --projects unit --coverage",
+    "test:integration": "jest --projects integration",
+    "test:integration:watch": "jest --projects integration --watch"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.1",
     "@electron-toolkit/utils": "^4.0.0",
     "@tailwindcss/vite": "^4.0.15",
+    "@types/ws": "^8.18.0",
     "electron-store": "^8.1.0",
+    "protobufjs": "^7.4.0",
     "react-router-dom": "^7.4.0",
     "styled-jsx": "^5.1.6",
     "tailwindcss": "^4.0.15",
+    "ws": "^8.18.1",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
     "@electron-toolkit/eslint-config-ts": "^3.0.0",
     "@electron-toolkit/tsconfig": "^1.0.1",
+    "@types/jest": "^29.5.14",
     "@types/node": "^22.13.4",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
@@ -46,9 +55,11 @@
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.19",
+    "jest": "^29.7.0",
     "prettier": "^3.5.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "ts-jest": "^29.3.0",
     "typescript": "^5.7.3",
     "vite": "^6.1.0"
   }

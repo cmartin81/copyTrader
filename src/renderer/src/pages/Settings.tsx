@@ -8,13 +8,41 @@ const Settings: React.FC = () => {
   const [saveSuccess, setSaveSuccess] = useState(false)
 
   const themes: { value: Theme; label: string }[] = [
-    { value: 'light', label: 'Light' },
-    { value: 'dark', label: 'Dark' },
-    { value: 'synthwave', label: 'Synthwave' },
-    { value: 'cyberpunk', label: 'Cyberpunk' },
-    { value: 'retro', label: 'Retro' },
-    { value: 'valentine', label: 'Valentine' },
-    { value: 'aqua', label: 'Aqua' }
+    { value: 'light', label: 'Light'},
+    { value: 'dark', label: 'Dark'},
+    { value: 'cupcake', label: 'Cupcake'},
+    { value: 'bumblebee', label: 'Bumblebee'},
+    { value: 'emerald', label: 'Emerald'},
+    { value: 'corporate', label: 'Corporate'},
+    { value: 'synthwave', label: 'Synthwave'},
+    { value: 'retro', label: 'Retro'},
+    { value: 'cyberpunk', label: 'Cyberpunk'},
+    { value: 'valentine', label: 'Valentine'},
+    { value: 'halloween', label: 'Halloween'},
+    { value: 'garden', label: 'Garden'},
+    { value: 'forest', label: 'Forest'},
+    { value: 'aqua', label: 'Aqua'},
+    { value: 'lofi', label: 'Lofi'},
+    { value: 'pastel', label: 'Pastel'},
+    { value: 'fantasy', label: 'Fantasy'},
+    { value: 'wireframe', label: 'Wireframe'},
+    { value: 'black', label: 'Black'},
+    { value: 'luxury', label: 'Luxury'},
+    { value: 'dracula', label: 'Dracula'},
+    { value: 'cmyk', label: 'Cmyk'},
+    { value: 'autumn', label: 'Autumn'},
+    { value: 'business', label: 'Business'},
+    { value: 'acid', label: 'Acid'},
+    { value: 'lemonade', label: 'Lemonade'},
+    { value: 'night', label: 'Night'},
+    { value: 'coffee', label: 'Coffee'},
+    { value: 'winter', label: 'Winter'},
+    { value: 'dim', label: 'Dim'},
+    { value: 'nord', label: 'Nord'},
+    { value: 'sunset', label: 'Sunset'},
+    { value: 'caramellatte', label: 'Caramellatte'},
+    { value: 'abyss', label: 'Abyss'},
+    { value: 'silk', label: 'Silk'},
   ]
 
   useEffect(() => {
@@ -64,7 +92,7 @@ const Settings: React.FC = () => {
             </label>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 mt-4">
             {themes.map((t) => (
               <div
                 key={t.value}
@@ -74,14 +102,14 @@ const Settings: React.FC = () => {
                 onClick={() => setTheme(t.value)}
                 data-theme={t.value}
               >
-                <div className="card-body items-center text-center p-4">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-8 bg-primary rounded" />
-                    <div className="w-2 h-8 bg-secondary rounded" />
-                    <div className="w-2 h-8 bg-accent rounded" />
-                    <div className="w-2 h-8 bg-neutral rounded" />
+                <div className="card-body items-center text-center p-2">
+                  <div className="flex gap-0.5">
+                    <div className="w-1.5 h-6 bg-primary rounded" />
+                    <div className="w-1.5 h-6 bg-secondary rounded" />
+                    <div className="w-1.5 h-6 bg-accent rounded" />
+                    <div className="w-1.5 h-6 bg-neutral rounded" />
                   </div>
-                  <h3 className="text-sm font-medium mt-2">{t.label}</h3>
+                  <h3 className="text-xs font-medium mt-1">{t.label}</h3>
                 </div>
               </div>
             ))}

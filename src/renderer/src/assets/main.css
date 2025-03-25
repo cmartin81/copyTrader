@@ -1,5 +1,6 @@
 @import "tailwindcss";
-@plugin "daisyui";
+@plugin "daisyui" {
+    themes: all;
+}
 @import './base.css';
-@import './themes.css';
 
