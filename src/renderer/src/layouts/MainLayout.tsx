@@ -35,15 +35,6 @@ const MainLayout = (): JSX.Element => {
       )
     },
     {
-      name: 'Accounts',
-      path: '/accounts',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-        </svg>
-      )
-    },
-    {
       name: 'Analytics',
       path: '/analytics',
       icon: (
@@ -114,46 +105,56 @@ const MainLayout = (): JSX.Element => {
                     </>
                   )}
                 </NavLink>
+                
+                {/* Place Trading Bots section under Dashboard */}
+                {item.name === 'Dashboard' && (
+                  <div className="mt-1 mb-2">
+                    <div className="flex items-center justify-between px-4 py-2">
+                      <div className="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <h3 className="font-medium text-xs text-base-content/50 uppercase tracking-wider ml-2">Trading Bots</h3>
+                      </div>
+                      <button
+                        onClick={() => setIsAddBotModalOpen(true)}
+                        className="btn btn-ghost btn-x h-6 p-0 flex items-center"
+                        title="Add new bot"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    </div>
+                    <ul className="space-y-0.5 pl-4">
+                      {bots.map((bot) => (
+                        <li key={bot.id}>
+                          <NavLink
+                            to={`/bots/${bot.id}`}
+                            className={({ isActive }) =>
+                              `flex items-center px-4 py-2 rounded-lg transition-all duration-200 ${
+                                isActive
+                                  ? 'bg-primary text-primary-content'
+                                  : 'text-base-content/70 hover:bg-base-content/5 hover:text-base-content'
+                              }`
+                            }
+                          >
+                            <div className="flex items-center flex-1 min-w-0">
+                              <div className="w-6 h-6 rounded-full bg-base-content/10 flex items-center justify-center mr-2">
+                                <span className="text-xs font-medium">{bot.name.substring(0, 2).toUpperCase()}</span>
+                              </div>
+                              <span className="font-medium text-sm truncate">{bot.name}</span>
+                            </div>
+                            <div className={`ml-2 w-2 h-2 mr-1 rounded-full ${bot.isRunning ? 'bg-success' : 'bg-base-content/30'}`} />
+                          </NavLink>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </li>
             ))}
           </nav>
-        </div>
-        
-        {/* Trading Bots Section */}
-        <div className="mt-8 px-2">
-          <div className="flex items-center justify-between px-4 mb-2">
-            <h3 className="font-semibold text-sm text-base-content/70">Trading Bots</h3>
-            <button
-              onClick={() => setIsAddBotModalOpen(true)}
-              className="btn btn-ghost btn-xs"
-              title="Add new bot"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-            </button>
-          </div>
-          <ul className="space-y-1">
-            {bots.map((bot) => (
-              <li key={bot.id}>
-                <NavLink
-                  to={`/bots/${bot.id}`}
-                  className={({ isActive }) =>
-                    `flex items-center px-4 py-2 rounded-lg transition-all duration-200 ${
-                      isActive
-                        ? 'bg-primary text-primary-content'
-                        : 'text-base-content/70 hover:bg-base-content/5 hover:text-base-content'
-                    }`
-                  }
-                >
-                  <div className="flex-1 truncate">
-                    <span className="font-medium text-sm">{bot.name}</span>
-                  </div>
-                  <div className={`ml-2 w-2 h-2 rounded-full ${bot.isRunning ? 'bg-success' : 'bg-base-content/30'}`} />
-                </NavLink>
-              </li>
-            ))}
-          </ul>
         </div>
         
         {/* User info */}
