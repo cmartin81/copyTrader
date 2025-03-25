@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Routes, Route, HashRouter, Navigate } from 'react-router-dom'
 import { initializeStore, useStore } from './store'
+import { useSettingsStore } from './store/settingsStore'
 import './styles/app.css'
 
 // Layout
@@ -15,6 +16,7 @@ import KitchenSink from './pages/KitchenSink'
 
 function App(): JSX.Element {
   const { isLoading } = useStore()
+  const { theme } = useSettingsStore()
   const [initialized, setInitialized] = useState(false)
   
   useEffect(() => {
@@ -27,9 +29,9 @@ function App(): JSX.Element {
   }, [])
   
   useEffect(() => {
-    // Set dark theme by default
-    document.documentElement.setAttribute('data-theme', 'wireframe')
-  }, [])
+    // Apply theme from settings store
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [theme])
   
   // Show loading until store is initialized
   if (isLoading || !initialized) {
@@ -46,7 +48,9 @@ function App(): JSX.Element {
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Dashboard />} />
-          <Route path="accounts" element={<Accounts />} />
+          <Route path="bots">
+            <Route path=":botId" element={<Accounts />} />
+          </Route>
           <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<Settings />} />
           <Route path="kitchen-sink" element={<KitchenSink />} />

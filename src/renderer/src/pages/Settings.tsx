@@ -1,21 +1,27 @@
 import React, { useState, useEffect } from 'react'
+import { useSettingsStore, Theme } from '../store/settingsStore'
 
 const Settings: React.FC = () => {
+  const { theme, setTheme } = useSettingsStore()
   const [ngrokAuthToken, setNgrokAuthToken] = useState('')
   const [ngrokUrl, setNgrokUrl] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
-  const [currentTheme, setCurrentTheme] = useState('dark')
+
+  const themes: { value: Theme; label: string }[] = [
+    { value: 'light', label: 'Light' },
+    { value: 'dark', label: 'Dark' },
+    { value: 'synthwave', label: 'Synthwave' },
+    { value: 'cyberpunk', label: 'Cyberpunk' },
+    { value: 'retro', label: 'Retro' },
+    { value: 'valentine', label: 'Valentine' },
+    { value: 'aqua', label: 'Aqua' }
+  ]
 
   useEffect(() => {
     // Get current theme from document
     const theme = document.documentElement.getAttribute('data-theme') || 'dark'
-    setCurrentTheme(theme)
+    setTheme(theme as Theme)
   }, [])
-
-  const handleThemeChange = (theme: string): void => {
-    document.documentElement.setAttribute('data-theme', theme)
-    setCurrentTheme(theme)
-  }
 
   const handleSaveSettings = (): void => {
     // This would typically save to a config file or database
@@ -31,10 +37,59 @@ const Settings: React.FC = () => {
   }
 
   return (
-    <div>
+    <div className="p-6">
       <h1 className="text-3xl font-bold mb-8">Settings</h1>
       
       <div className="card bg-base-100 shadow-xl">
+        <div className="card-body">
+          <h2 className="card-title mb-4">Appearance</h2>
+          
+          <div className="form-control w-full max-w-xs">
+            <label className="label">
+              <span className="label-text">Theme</span>
+            </label>
+            <select
+              className="select select-bordered"
+              value={theme}
+              onChange={(e) => setTheme(e.target.value as Theme)}
+            >
+              {themes.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+            <label className="label">
+              <span className="label-text-alt">Select your preferred theme</span>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            {themes.map((t) => (
+              <div
+                key={t.value}
+                className={`card bg-base-100 cursor-pointer transition-all hover:scale-105 ${
+                  theme === t.value ? 'ring-2 ring-primary' : ''
+                }`}
+                onClick={() => setTheme(t.value)}
+                data-theme={t.value}
+              >
+                <div className="card-body items-center text-center p-4">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-8 bg-primary rounded" />
+                    <div className="w-2 h-8 bg-secondary rounded" />
+                    <div className="w-2 h-8 bg-accent rounded" />
+                    <div className="w-2 h-8 bg-neutral rounded" />
+                  </div>
+                  <h3 className="text-sm font-medium mt-2">{t.label}</h3>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      <div className="card bg-base-100 shadow-xl mt-8">
         <div className="card-body">
           <h2 className="card-title mb-4">Ngrok Configuration</h2>
           <p className="mb-6 opacity-70">
@@ -90,105 +145,6 @@ const Settings: React.FC = () => {
                 <span>Settings saved successfully!</span>
               </div>
             )}
-          </div>
-        </div>
-      </div>
-      
-      <div className="card bg-base-100 shadow-xl mt-8">
-        <div className="card-body">
-          <h2 className="card-title mb-4">Application Settings</h2>
-          
-          <div className="divider">Appearance</div>
-          
-          <div className="form-control w-full max-w-md">
-            <label className="label">
-              <span className="label-text">Theme</span>
-            </label>
-            <select 
-              className="select select-bordered w-full"
-              value={currentTheme}
-              onChange={(e) => handleThemeChange(e.target.value)}
-            >
-              <option value="dark">Dark</option>
-              <option value="light">Light</option>
-              <option value="wireframe">Wireframe</option>
-              <option value="aqua">Aqua</option>
-              <option value="fantasy">Fantasy</option>
-              <option value="synthwave">Synthwave</option>
-            </select>
-          </div>
-          
-          <div className="divider mt-6">Notifications</div>
-          
-          <div className="form-control">
-            <label className="label cursor-pointer justify-start gap-4">
-              <input type="checkbox" className="toggle toggle-primary" defaultChecked />
-              <span className="label-text">Email notifications</span>
-            </label>
-          </div>
-          
-          <div className="form-control mt-2">
-            <label className="label cursor-pointer justify-start gap-4">
-              <input type="checkbox" className="toggle toggle-primary" defaultChecked />
-              <span className="label-text">Trade execution alerts</span>
-            </label>
-          </div>
-          
-          <div className="form-control mt-2">
-            <label className="label cursor-pointer justify-start gap-4">
-              <input type="checkbox" className="toggle toggle-primary" />
-              <span className="label-text">Daily summary reports</span>
-            </label>
-          </div>
-          
-          <div className="divider mt-6">Security</div>
-          
-          <div className="form-control">
-            <label className="label cursor-pointer justify-start gap-4">
-              <input type="checkbox" className="toggle toggle-primary" defaultChecked />
-              <span className="label-text">Two-factor authentication</span>
-            </label>
-          </div>
-          
-          <div className="form-control mt-2">
-            <label className="label cursor-pointer justify-start gap-4">
-              <input type="checkbox" className="toggle toggle-primary" defaultChecked />
-              <span className="label-text">Session timeout (after 30 minutes)</span>
-            </label>
-          </div>
-          
-          <div className="divider mt-6">Trading Limits</div>
-          
-          <div className="form-control w-full max-w-md">
-            <label className="label">
-              <span className="label-text">Maximum trade size (% of portfolio)</span>
-            </label>
-            <input 
-              type="number" 
-              placeholder="5" 
-              className="input input-bordered w-full"
-              defaultValue={5}
-              min={1}
-              max={100}
-            />
-          </div>
-          
-          <div className="form-control w-full max-w-md mt-4">
-            <label className="label">
-              <span className="label-text">Daily loss limit (%)</span>
-            </label>
-            <input 
-              type="number" 
-              placeholder="10" 
-              className="input input-bordered w-full"
-              defaultValue={10}
-              min={1}
-              max={100}
-            />
-          </div>
-          
-          <div className="mt-6">
-            <button className="btn btn-primary">Save All Settings</button>
           </div>
         </div>
       </div>

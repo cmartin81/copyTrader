@@ -1,57 +1,61 @@
-import React, { useState } from 'react'
-
-interface MasterAccount {
-  id: string
-  name: string
-  type: 'NinjaTrader' | 'MetaTrader' | 'TradingView'
-  connectionType: 'token' | 'oauth' | 'credentials'
-  credentials: {
-    token?: string
-    username?: string
-    password?: string
-    url?: string
-  }
-}
-
-interface TargetAccount {
-  id: string
-  name: string
-  type: 'PropFirm' | 'TopStepX' | 'Tradovate'
-  accountId: string
-  tickerMappings: TickerMapping[]
-}
-
-interface TickerMapping {
-  sourceTicker: string
-  targetTicker: string
-  multiplier: number
-  isEditing?: boolean
-}
+import React, { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useBotStore, Bot, MasterAccount } from '../store/botStore'
 
 type LogSize = 'normal' | 'half' | 'full'
 
 const Accounts: React.FC = () => {
-  const [masterAccount, setMasterAccount] = useState<MasterAccount | null>(null)
-  const [targetAccounts, setTargetAccounts] = useState<TargetAccount[]>([])
-  const [showAddTarget, setShowAddTarget] = useState(false)
+  const { botId } = useParams<{ botId: string }>()
+  const navigate = useNavigate()
+  const { bots, updateBot, toggleBot, deleteBot } = useBotStore()
+  const bot = bots.find(b => b.id === botId)
+
   const [logs, setLogs] = useState<string[]>([])
   const [logSize, setLogSize] = useState<LogSize>('normal')
   const [isTailing, setIsTailing] = useState(true)
   const [isReversed, setIsReversed] = useState(false)
-  const [botName, setBotName] = useState('My Trading Bot')
-  const [isBotRunning, setIsBotRunning] = useState(false)
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [editedName, setEditedName] = useState('')
   const logContainerRef = React.useRef<HTMLDivElement>(null)
-  const [newTargetAccount, setNewTargetAccount] = useState<Partial<TargetAccount>>({
+  const [showAddTarget, setShowAddTarget] = useState(false)
+  const [newTargetAccount, setNewTargetAccount] = useState<Partial<Bot['targetAccounts'][0]>>({
     name: '',
     type: 'PropFirm',
     accountId: '',
     tickerMappings: []
   })
 
-  const toggleBot = (): void => {
-    const newState = !isBotRunning
-    setIsBotRunning(newState)
-    addLog(`Bot ${newState ? 'started' : 'stopped'}: ${botName}`)
+  useEffect(() => {
+    if (!bot) {
+      navigate('/')
+    } else if (!isEditingName) {
+      setEditedName(bot.name)
+    }
+  }, [bot, navigate, isEditingName])
+
+  if (!bot) {
+    return null
+  }
+
+  const handleDeleteBot = (): void => {
+    if (window.confirm(`Are you sure you want to delete the bot "${bot.name}"?`)) {
+      deleteBot(bot.id)
+      navigate('/')
+      addLog(`Bot deleted: ${bot.name}`)
+    }
+  }
+
+  const handleSaveName = (): void => {
+    if (editedName.trim() && editedName !== bot.name) {
+      updateBot(bot.id, { name: editedName.trim() })
+      addLog(`Bot renamed to: ${editedName.trim()}`)
+    }
+    setIsEditingName(false)
+  }
+
+  const toggleBotRunning = (): void => {
+    toggleBot(bot.id)
+    addLog(`Bot ${!bot.isRunning ? 'started' : 'stopped'}: ${bot.name}`)
   }
 
   const addLog = (message: string): void => {
@@ -80,28 +84,58 @@ const Accounts: React.FC = () => {
   }
 
   const handleMasterAccountTypeChange = (type: MasterAccount['type']): void => {
-    setMasterAccount({
+    const newMasterAccount: MasterAccount = {
       id: Date.now().toString(),
       name: '',
       type,
       connectionType: 'credentials',
       credentials: {}
+    }
+    updateBot(bot.id, {
+      masterAccount: newMasterAccount
     })
     addLog(`Master account type changed to ${type}`)
   }
 
+  const handleMasterAccountConnectionTypeChange = (connectionType: MasterAccount['connectionType']): void => {
+    if (bot.masterAccount) {
+      updateBot(bot.id, {
+        masterAccount: {
+          ...bot.masterAccount,
+          connectionType
+        }
+      })
+    }
+  }
+
+  const handleMasterAccountCredentialsChange = (
+    field: keyof MasterAccount['credentials'],
+    value: string
+  ): void => {
+    if (bot.masterAccount) {
+      updateBot(bot.id, {
+        masterAccount: {
+          ...bot.masterAccount,
+          credentials: { ...bot.masterAccount.credentials, [field]: value }
+        }
+      })
+    }
+  }
+
   const handleAddTargetAccount = (): void => {
     if (newTargetAccount.name && newTargetAccount.type && newTargetAccount.accountId) {
-      setTargetAccounts([
-        ...targetAccounts,
-        {
-          id: Date.now().toString(),
-          name: newTargetAccount.name,
-          type: newTargetAccount.type as TargetAccount['type'],
-          accountId: newTargetAccount.accountId,
-          tickerMappings: []
-        }
-      ])
+      updateBot(bot.id, {
+        targetAccounts: [
+          ...bot.targetAccounts,
+          {
+            id: Date.now().toString(),
+            name: newTargetAccount.name,
+            type: newTargetAccount.type,
+            accountId: newTargetAccount.accountId,
+            tickerMappings: []
+          }
+        ]
+      })
       setNewTargetAccount({
         name: '',
         type: 'PropFirm',
@@ -114,54 +148,63 @@ const Accounts: React.FC = () => {
   }
 
   const handleAddTickerMapping = (targetId: string): void => {
-    setTargetAccounts(targetAccounts.map(account => {
-      if (account.id === targetId) {
-        return {
-          ...account,
-          tickerMappings: [...account.tickerMappings, { 
-            sourceTicker: '', 
-            targetTicker: '', 
-            multiplier: 1,
-            isEditing: true 
-          }]
+    updateBot(bot.id, {
+      targetAccounts: bot.targetAccounts.map(account => {
+        if (account.id === targetId) {
+          return {
+            ...account,
+            tickerMappings: [...account.tickerMappings, { 
+              sourceTicker: '', 
+              targetTicker: '', 
+              multiplier: 1,
+              isEditing: true 
+            }]
+          }
         }
-      }
-      return account
-    }))
+        return account
+      })
+    })
   }
 
   const handleSaveMapping = (targetId: string, index: number): void => {
-    setTargetAccounts(targetAccounts.map(account => {
-      if (account.id === targetId) {
-        const newMappings = [...account.tickerMappings]
-        newMappings[index] = { ...newMappings[index], isEditing: false }
-        addLog(`Saved mapping for ${account.name}: ${newMappings[index].sourceTicker} → ${newMappings[index].targetTicker} (x${newMappings[index].multiplier})`)
-        return { ...account, tickerMappings: newMappings }
-      }
-      return account
-    }))
+    updateBot(bot.id, {
+      targetAccounts: bot.targetAccounts.map(account => {
+        if (account.id === targetId) {
+          const newMappings = [...account.tickerMappings]
+          const mapping = newMappings[index]
+          newMappings[index] = { ...mapping, isEditing: false }
+          addLog(`Saved mapping for ${account.name}: ${mapping.sourceTicker} → ${mapping.targetTicker} (x${mapping.multiplier})`)
+          return { ...account, tickerMappings: newMappings }
+        }
+        return account
+      })
+    })
   }
 
   const handleEditMapping = (targetId: string, index: number): void => {
-    setTargetAccounts(targetAccounts.map(account => {
-      if (account.id === targetId) {
-        const newMappings = [...account.tickerMappings]
-        newMappings[index] = { ...newMappings[index], isEditing: true }
-        return { ...account, tickerMappings: newMappings }
-      }
-      return account
-    }))
+    updateBot(bot.id, {
+      targetAccounts: bot.targetAccounts.map(account => {
+        if (account.id === targetId) {
+          const newMappings = [...account.tickerMappings]
+          newMappings[index] = { ...newMappings[index], isEditing: true }
+          return { ...account, tickerMappings: newMappings }
+        }
+        return account
+      })
+    })
   }
 
   const handleDeleteTickerMapping = (targetId: string, index: number): void => {
-    setTargetAccounts(targetAccounts.map(account => {
-      if (account.id === targetId) {
-        const newMappings = account.tickerMappings.filter((_, i) => i !== index)
-        addLog(`Deleted mapping from ${account.name}`)
-        return { ...account, tickerMappings: newMappings }
-      }
-      return account
-    }))
+    updateBot(bot.id, {
+      targetAccounts: bot.targetAccounts.map(account => {
+        if (account.id === targetId) {
+          const newMappings = account.tickerMappings.filter((_, i) => i !== index)
+          addLog(`Deleted mapping from ${account.name}`)
+          return { ...account, tickerMappings: newMappings }
+        }
+        return account
+      })
+    })
   }
 
   const getLogClassName = (): string => {
@@ -191,44 +234,101 @@ const Accounts: React.FC = () => {
         <div className="bg-base-100 rounded-lg p-6 border border-base-300">
           <div className="flex justify-between items-center">
             <div className="flex-1 flex items-center gap-6">
-              <h1 className="text-3xl font-bold">Accounts</h1>
-              <div className="form-control max-w-xs">
-                <input 
-                  type="text" 
-                  placeholder="Enter bot name" 
-                  className="input input-bordered w-full" 
-                  value={botName}
-                  onChange={(e) => setBotName(e.target.value)}
-                />
-              </div>
+              {isEditingName ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    className="input input-bordered text-3xl font-bold h-auto py-1"
+                    value={editedName}
+                    onChange={(e) => setEditedName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSaveName()
+                      } else if (e.key === 'Escape') {
+                        setIsEditingName(false)
+                        setEditedName(bot.name)
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <div className="flex gap-1">
+                    <button
+                      className="btn btn-circle btn-sm btn-ghost"
+                      onClick={() => {
+                        setIsEditingName(false)
+                        setEditedName(bot.name)
+                      }}
+                      title="Cancel"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                    <button
+                      className="btn btn-circle btn-primary"
+                      onClick={handleSaveName}
+                      title="Save"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <h1 className="text-3xl font-bold">{bot.name}</h1>
+                  <button
+                    className="btn btn-circle btn-sm btn-ghost"
+                    onClick={() => setIsEditingName(true)}
+                    title="Edit name"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
-            <button 
-              onClick={toggleBot}
-              className={`btn btn-lg ${
-                isBotRunning 
-                  ? 'btn-error hover:btn-error' 
-                  : 'btn-success hover:btn-success'
-              } min-w-[150px]`}
-            >
-              <div className="flex items-center gap-2">
-                {isBotRunning ? (
-                  <>
-                    <span className="relative flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-error-content opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-error-content"></span>
-                    </span>
-                    Stop Bot
-                  </>
-                ) : (
-                  <>
-                    <span className="relative flex h-3 w-3">
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-success-content"></span>
-                    </span>
-                    Start Bot
-                  </>
-                )}
-              </div>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                className="btn btn-ghost btn-error"
+                onClick={handleDeleteBot}
+                title="Delete bot"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                Delete Bot
+              </button>
+              <button 
+                onClick={toggleBotRunning}
+                className={`btn btn-lg ${
+                  bot.isRunning 
+                    ? 'btn-error hover:btn-error' 
+                    : 'btn-success hover:btn-success'
+                } min-w-[150px]`}
+              >
+                <div className="flex items-center gap-2">
+                  {bot.isRunning ? (
+                    <>
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-error-content opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-error-content"></span>
+                      </span>
+                      Stop Bot
+                    </>
+                  ) : (
+                    <>
+                      <span className="relative flex h-3 w-3">
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-success-content"></span>
+                      </span>
+                      Start Bot
+                    </>
+                  )}
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -243,6 +343,7 @@ const Accounts: React.FC = () => {
                 <label className="block text-sm text-base-content/70 mb-2">Select Master Account Type</label>
                 <select
                   className="select select-bordered w-full"
+                  value={bot.masterAccount?.type || ''}
                   onChange={(e) => handleMasterAccountTypeChange(e.target.value as MasterAccount['type'])}
                 >
                   <option value="">Select a type</option>
@@ -252,17 +353,14 @@ const Accounts: React.FC = () => {
                 </select>
               </div>
 
-              {masterAccount && (
+              {bot.masterAccount && (
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm text-base-content/70 mb-2">Connection Type</label>
                     <select
                       className="select select-bordered w-full"
-                      value={masterAccount.connectionType}
-                      onChange={(e) => setMasterAccount({
-                        ...masterAccount,
-                        connectionType: e.target.value as MasterAccount['connectionType']
-                      })}
+                      value={bot.masterAccount.connectionType}
+                      onChange={(e) => handleMasterAccountConnectionTypeChange(e.target.value as MasterAccount['connectionType'])}
                     >
                       <option value="credentials">Username/Password</option>
                       <option value="token">API Token</option>
@@ -270,18 +368,15 @@ const Accounts: React.FC = () => {
                     </select>
                   </div>
 
-                  {masterAccount.connectionType === 'credentials' && (
+                  {bot.masterAccount.connectionType === 'credentials' && (
                     <>
                       <div>
                         <label className="block text-sm text-base-content/70 mb-2">Username</label>
                         <input
                           type="text"
                           className="input input-bordered w-full"
-                          value={masterAccount.credentials.username || ''}
-                          onChange={(e) => setMasterAccount({
-                            ...masterAccount,
-                            credentials: { ...masterAccount.credentials, username: e.target.value }
-                          })}
+                          value={bot.masterAccount.credentials.username || ''}
+                          onChange={(e) => handleMasterAccountCredentialsChange('username', e.target.value)}
                         />
                       </div>
                       <div>
@@ -289,27 +384,21 @@ const Accounts: React.FC = () => {
                         <input
                           type="password"
                           className="input input-bordered w-full"
-                          value={masterAccount.credentials.password || ''}
-                          onChange={(e) => setMasterAccount({
-                            ...masterAccount,
-                            credentials: { ...masterAccount.credentials, password: e.target.value }
-                          })}
+                          value={bot.masterAccount.credentials.password || ''}
+                          onChange={(e) => handleMasterAccountCredentialsChange('password', e.target.value)}
                         />
                       </div>
                     </>
                   )}
 
-                  {masterAccount.connectionType === 'token' && (
+                  {bot.masterAccount.connectionType === 'token' && (
                     <div>
                       <label className="block text-sm text-base-content/70 mb-2">API Token</label>
                       <input
                         type="password"
                         className="input input-bordered w-full"
-                        value={masterAccount.credentials.token || ''}
-                        onChange={(e) => setMasterAccount({
-                          ...masterAccount,
-                          credentials: { ...masterAccount.credentials, token: e.target.value }
-                        })}
+                        value={bot.masterAccount.credentials.token || ''}
+                        onChange={(e) => handleMasterAccountCredentialsChange('token', e.target.value)}
                       />
                     </div>
                   )}
@@ -347,7 +436,7 @@ const Accounts: React.FC = () => {
                     <select
                       className="select select-bordered w-full"
                       value={newTargetAccount.type}
-                      onChange={(e) => setNewTargetAccount({ ...newTargetAccount, type: e.target.value as TargetAccount['type'] })}
+                      onChange={(e) => setNewTargetAccount({ ...newTargetAccount, type: e.target.value as Bot['targetAccounts'][0]['type'] })}
                     >
                       <option value="PropFirm">Prop Firm</option>
                       <option value="TopStepX">TopStepX</option>
@@ -382,7 +471,7 @@ const Accounts: React.FC = () => {
             )}
 
             <div className="space-y-4">
-              {targetAccounts.map((account) => (
+              {bot.targetAccounts.map((account) => (
                 <div key={account.id} className="bg-base-200 rounded-lg p-4">
                   <div className="flex justify-between items-center mb-4">
                     <div>
@@ -392,7 +481,9 @@ const Accounts: React.FC = () => {
                     <button
                       className="btn btn-ghost btn-sm"
                       onClick={() => {
-                        setTargetAccounts(targetAccounts.filter(a => a.id !== account.id))
+                        updateBot(bot.id, {
+                          targetAccounts: bot.targetAccounts.filter(a => a.id !== account.id)
+                        })
                         addLog(`Deleted account: ${account.name}`)
                       }}
                     >
@@ -414,9 +505,11 @@ const Accounts: React.FC = () => {
                           onChange={(e) => {
                             const newMappings = [...account.tickerMappings]
                             newMappings[index] = { ...mapping, sourceTicker: e.target.value }
-                            setTargetAccounts(targetAccounts.map(a => 
-                              a.id === account.id ? { ...a, tickerMappings: newMappings } : a
-                            ))
+                            updateBot(bot.id, {
+                              targetAccounts: bot.targetAccounts.map(a => 
+                                a.id === account.id ? { ...a, tickerMappings: newMappings } : a
+                              )
+                            })
                           }}
                           placeholder="Source"
                         />
@@ -429,9 +522,11 @@ const Accounts: React.FC = () => {
                           onChange={(e) => {
                             const newMappings = [...account.tickerMappings]
                             newMappings[index] = { ...mapping, targetTicker: e.target.value }
-                            setTargetAccounts(targetAccounts.map(a => 
-                              a.id === account.id ? { ...a, tickerMappings: newMappings } : a
-                            ))
+                            updateBot(bot.id, {
+                              targetAccounts: bot.targetAccounts.map(a => 
+                                a.id === account.id ? { ...a, tickerMappings: newMappings } : a
+                              )
+                            })
                           }}
                           placeholder="Target"
                         />
@@ -444,9 +539,11 @@ const Accounts: React.FC = () => {
                           onChange={(e) => {
                             const newMappings = [...account.tickerMappings]
                             newMappings[index] = { ...mapping, multiplier: parseFloat(e.target.value) || 1 }
-                            setTargetAccounts(targetAccounts.map(a => 
-                              a.id === account.id ? { ...a, tickerMappings: newMappings } : a
-                            ))
+                            updateBot(bot.id, {
+                              targetAccounts: bot.targetAccounts.map(a => 
+                                a.id === account.id ? { ...a, tickerMappings: newMappings } : a
+                              )
+                            })
                           }}
                           step="0.1"
                         />

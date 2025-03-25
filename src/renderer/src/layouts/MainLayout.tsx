@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useState } from 'react'
+import { useBotStore } from '../store/botStore'
 
 interface MenuItem {
   name: string
@@ -11,6 +12,17 @@ const MainLayout = (): JSX.Element => {
   const [username] = useState('Admin User')
   const [email] = useState('admin@xlink.com')
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [isAddBotModalOpen, setIsAddBotModalOpen] = useState(false)
+  const [newBotName, setNewBotName] = useState('')
+  const { bots, addBot } = useBotStore()
+
+  const handleAddBot = (): void => {
+    if (newBotName.trim()) {
+      addBot(newBotName.trim())
+      setNewBotName('')
+      setIsAddBotModalOpen(false)
+    }
+  }
 
   const menuItems: MenuItem[] = [
     {
@@ -107,6 +119,43 @@ const MainLayout = (): JSX.Element => {
           </nav>
         </div>
         
+        {/* Trading Bots Section */}
+        <div className="mt-8 px-2">
+          <div className="flex items-center justify-between px-4 mb-2">
+            <h3 className="font-semibold text-sm text-base-content/70">Trading Bots</h3>
+            <button
+              onClick={() => setIsAddBotModalOpen(true)}
+              className="btn btn-ghost btn-xs"
+              title="Add new bot"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </div>
+          <ul className="space-y-1">
+            {bots.map((bot) => (
+              <li key={bot.id}>
+                <NavLink
+                  to={`/bots/${bot.id}`}
+                  className={({ isActive }) =>
+                    `flex items-center px-4 py-2 rounded-lg transition-all duration-200 ${
+                      isActive
+                        ? 'bg-primary text-primary-content'
+                        : 'text-base-content/70 hover:bg-base-content/5 hover:text-base-content'
+                    }`
+                  }
+                >
+                  <div className="flex-1 truncate">
+                    <span className="font-medium text-sm">{bot.name}</span>
+                  </div>
+                  <div className={`ml-2 w-2 h-2 rounded-full ${bot.isRunning ? 'bg-success' : 'bg-base-content/30'}`} />
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </div>
+        
         {/* User info */}
         <div className="p-4 mt-auto border-t border-base-content/10 pt-4 pb-6">
           <button
@@ -181,6 +230,40 @@ const MainLayout = (): JSX.Element => {
           </div>
         </main>
       </div>
+
+      {/* Add Bot Modal */}
+      {isAddBotModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-base-100 rounded-xl p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Add New Trading Bot</h2>
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Bot Name</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Enter bot name"
+                className="input input-bordered w-full"
+                value={newBotName}
+                onChange={(e) => setNewBotName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAddBot()
+                  }
+                }}
+              />
+            </div>
+            <div className="modal-action">
+              <button className="btn btn-ghost" onClick={() => setIsAddBotModalOpen(false)}>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={handleAddBot}>
+                Add Bot
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
