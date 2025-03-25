@@ -19,11 +19,11 @@
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
-    "test": "jest --projects unit",
-    "test:watch": "jest --projects unit --watch",
-    "test:coverage": "jest --projects unit --coverage",
-    "test:integration": "jest --projects integration",
-    "test:integration:watch": "jest --projects integration --watch"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:integration": "jest --testMatch '**/__tests__/integration/**/*.integration.test.ts'",
+    "test:integration:watch": "jest --testMatch '**/__tests__/integration/**/*.integration.test.ts' --watch"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.1",
