@@ -1,86 +1,40 @@
-import { WebSocket } from 'ws';
-import { RithmicProtoLoader } from './proto/RithmicProtoLoader';
-
-// Enums from the Rithmic protocol
-enum TransactionType {
-  BUY = 'BUY',
-  SELL = 'SELL'
-}
-
-enum Duration {
-  DAY = 'DAY',
-  GTC = 'GTC',
-  IOC = 'IOC',
-  FOK = 'FOK'
-}
-
-enum PriceType {
-  LIMIT = 'LIMIT',
-  MARKET = 'MARKET',
-  STOP_LIMIT = 'STOP_LIMIT',
-  STOP_MARKET = 'STOP_MARKET'
-}
-
-enum OrderPlacement {
-  MANUAL = 'MANUAL',
-  AUTO = 'AUTO'
-}
-
-enum NotifyType {
-  ORDER_RCVD_FROM_CLNT = 'ORDER_RCVD_FROM_CLNT',
-  MODIFY_RCVD_FROM_CLNT = 'MODIFY_RCVD_FROM_CLNT',
-  CANCEL_RCVD_FROM_CLNT = 'CANCEL_RCVD_FROM_CLNT',
-  OPEN_PENDING = 'OPEN_PENDING',
-  MODIFY_PENDING = 'MODIFY_PENDING',
-  CANCEL_PENDING = 'CANCEL_PENDING',
-  ORDER_RCVD_BY_EXCH_GTWY = 'ORDER_RCVD_BY_EXCH_GTWY',
-  MODIFY_RCVD_BY_EXCH_GTWY = 'MODIFY_RCVD_BY_EXCH_GTWY',
-  CANCEL_RCVD_BY_EXCH_GTWY = 'CANCEL_RCVD_BY_EXCH_GTWY',
-  ORDER_SENT_TO_EXCH = 'ORDER_SENT_TO_EXCH',
-  MODIFY_SENT_TO_EXCH = 'MODIFY_SENT_TO_EXCH',
-  CANCEL_SENT_TO_EXCH = 'CANCEL_SENT_TO_EXCH',
-  OPEN = 'OPEN',
-  MODIFIED = 'MODIFIED',
-  COMPLETE = 'COMPLETE',
-  MODIFICATION_FAILED = 'MODIFICATION_FAILED',
-  CANCELLATION_FAILED = 'CANCELLATION_FAILED',
-  TRIGGER_PENDING = 'TRIGGER_PENDING',
-  GENERIC = 'GENERIC',
-  LINK_ORDERS_FAILED = 'LINK_ORDERS_FAILED'
-}
+import { WebSocket } from 'ws'
+import { RithmicProtoLoader } from './proto/RithmicProtoLoader'
 
 interface RithmicWebSocketConfig {
-  url: string;
-  apiKey: string;
-  systemName: string;
-  userId: string;
-  password: string;
-  appName?: string;
-  appVersion?: string;
-  infraType?: string;
+  url: string
+  systemName: string
+  userId: string
+  password: string
+  appName?: string
+  appVersion?: string
+  infraType?: string
 }
 
 interface RithmicWebSocketState {
-  isConnected: boolean;
-  lastError?: string;
-  connectionId?: string;
-  fcmId?: string;
-  ibId?: string;
-  accountId?: string;
-  tradeRoute?: string;
+  isConnected: boolean
+  lastError?: string
+  connectionId?: string
+  fcmId?: string
+  ibId?: string
+  accountId?: string
+  tradeRoute?: string
 }
 
 export class RithmicWebSocketService {
-  private ws: WebSocket | null = null;
-  private config: RithmicWebSocketConfig;
+  private ws: WebSocket | null = null
+  private config: RithmicWebSocketConfig
   private state: RithmicWebSocketState = {
-    isConnected: false,
-  };
-  private reconnectAttempts: number = 0;
-  private maxReconnectAttempts: number = 5;
-  private reconnectTimeout: number = 5000; // 5 seconds
-  private messageHandlers: Map<number, (data: Buffer) => void> = new Map();
-  private protoLoader: RithmicProtoLoader;
+    isConnected: false
+  }
+  private reconnectAttempts: number = 0
+  private maxReconnectAttempts: number = 5
+  private reconnectTimeout: number = 5000 // 5 seconds
+  private messageHandlers: Map<number, (data: Buffer) => void> = new Map()
+  private protoLoader: RithmicProtoLoader
+  transactionTypeToString: { [x: number]: string } = {}
+  priceTypeToString: { [x: number]: string } = {}
+  orderPlacementToString: { [x: number]: string } = {}
 
   constructor(config: RithmicWebSocketConfig) {
     this.config = {
@@ -88,127 +42,176 @@ export class RithmicWebSocketService {
       appVersion: '1.0.0',
       infraType: 'ORDER_PLANT',
       ...config
-    };
-    this.protoLoader = RithmicProtoLoader.getInstance();
-    this.setupMessageHandlers();
+    }
+    this.protoLoader = RithmicProtoLoader.getInstance()
+    this.setupMessageHandlers()
+    this.defineMappings()
+    setInterval(() => {
+      if (this.state.isConnected) {
+        this.sendHeartbeat()
+      }
+    }, 20 * 1000)
   }
 
+  private defineMappings(): void {
+    const RithmicOrderNotification: protobuf.Type = this.protoLoader.getMessageType(
+      'RithmicOrderNotification'
+    )
+    const TransactionType = RithmicOrderNotification.TransactionType
+    const PriceType = RithmicOrderNotification.PriceType
+    const OrderPlacement = RithmicOrderNotification.OrderPlacement
+
+    this.transactionTypeToString = {
+      [TransactionType.BUY]: 'BUY',
+      [TransactionType.SELL]: 'SELL'
+    }
+
+    this.priceTypeToString = {
+      [PriceType.LIMIT]: 'LIMIT',
+      [PriceType.MARKET]: 'MARKET',
+      [PriceType.STOP_LIMIT]: 'STOP_LIMIT',
+      [PriceType.STOP_MARKET]: 'STOP_MARKET'
+    }
+
+    this.orderPlacementToString = {
+      [OrderPlacement.MANUAL]: 'MANUAL',
+      [OrderPlacement.AUTO]: 'AUTO'
+    }
+  }
   private setupMessageHandlers(): void {
-    this.messageHandlers.set(11, this.handleAuthResponse.bind(this));
-    this.messageHandlers.set(351, this.handleOrderNotification.bind(this));
-    this.messageHandlers.set(352, this.handleExchangeOrderNotification.bind(this));
-    this.messageHandlers.set(19, this.handleHeartbeatResponse.bind(this));
+    // this.messageHandlers.set(11, this.handleAuthResponse.bind(this));
+    this.messageHandlers.set(351, this.handleOrderNotification.bind(this))
+    this.messageHandlers.set(352, this.handleExchangeOrderNotification.bind(this))
+    this.messageHandlers.set(19, this.handleHeartbeatResponse.bind(this))
   }
 
   public connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
         this.ws = new WebSocket(this.config.url, {
-          rejectUnauthorized: false
-        });
+          rejectUnauthorized: false,
+          autoPong: true
+        })
 
         this.ws.on('open', () => {
-          this.state.isConnected = true;
-          this.reconnectAttempts = 0;
-          this.authenticate();
-          resolve();
-        });
+          this.state.isConnected = true
+          this.reconnectAttempts = 0
+          this.authenticate().then(() => {
+            resolve()
+          })
+        })
 
         this.ws.on('message', (data: Buffer) => {
-          this.handleMessage(data);
-        });
+          this.handleMessage(data)
+        })
 
         this.ws.on('error', (error: Error) => {
-          this.state.lastError = error.message;
-          this.handleDisconnect();
-          reject(error);
-        });
+          console.log('🔴🔴🔴🔴🔴')
+          this.state.lastError = error.message
+          console.error('WebSocket error:', error)
+          this.handleDisconnect()
+          reject(error)
+        })
 
         this.ws.on('close', () => {
-          this.handleDisconnect();
-        });
-
+          console.log('WebSocket closed')
+          this.handleDisconnect()
+        })
       } catch (error) {
-        this.state.lastError = error instanceof Error ? error.message : 'Unknown error';
-        reject(error);
+        console.log('💥💥💥💥')
+
+        this.state.lastError = error instanceof Error ? error.message : 'Unknown error'
+        reject(error)
       }
-    });
+    })
   }
 
   private handleMessage(data: Buffer): void {
     try {
       // First decode the base message to get the template ID
-      const baseMessage = this.protoLoader.decodeMessage('Base', data);
-      const handler = this.messageHandlers.get(baseMessage.templateId);
-      
+      const baseMessage = this.protoLoader.decodeMessage('Base', data)
+      // console.log(JSON.stringify(baseMessage))
+
+      const handler = this.messageHandlers.get(baseMessage.templateId)
+
       if (handler) {
-        handler(data);
+        handler(data)
       } else {
-        console.log('Unhandled message type:', baseMessage.templateId);
+        console.log('Unhandled message type:', baseMessage.templateId)
       }
     } catch (error) {
-      console.error('Error parsing message:', error);
+      console.error('Error parsing message:', error)
     }
   }
 
   private handleAuthResponse(data: Buffer): void {
     try {
-      const message = this.protoLoader.decodeMessage('ResponseLogin', data);
+      const message = this.protoLoader.decodeMessage('ResponseLogin', data)
       if (message.rpCode[0] === '0') {
-        this.state.fcmId = message.fcmId;
-        this.state.ibId = message.ibId;
-        console.log('Successfully authenticated with Rithmic');
+        this.state.fcmId = message.fcmId
+        this.state.ibId = message.ibId
+        console.log('Successfully authenticated with Rithmic')
       } else {
-        this.state.lastError = message.userMsg.join(', ');
-        this.handleDisconnect();
+        this.state.lastError = message.userMsg.join(', ') + ' (' + message.rpCode.join(' ,') + ')'
+        console.error('Authentication failed:', this.state.lastError)
+        console.log('222222');
+
+        this.handleDisconnect()
       }
     } catch (error) {
-      console.error('Error handling auth response:', error);
+      console.error('Error handling auth response:', error)
     }
   }
 
   private handleOrderNotification(data: Buffer): void {
     try {
-      const message = this.protoLoader.decodeMessage('RithmicOrderNotification', data);
-      console.log('Order notification received:', {
-        status: message.status,
-        symbol: message.symbol,
-        exchange: message.exchange,
-        quantity: message.quantity,
-        price: message.price,
-        notifyType: message.notifyType
-      });
+      const message = this.protoLoader.decodeMessage('RithmicOrderNotification', data)
+      // console.log('Order notification received:', {
+      //   status: message.status,
+      //   symbol: message.symbol,
+      //   exchange: message.exchange,
+      //   quantity: message.quantity,
+      //   price: message.price,
+      //   notifyType: message.notifyType
+      // });
+      if (message.status === 'complete' && message.totalFillSize !== 0) {
+        console.log(message)
+        const executionType = this.priceTypeToString[message.priceType]
+        const type = this.transactionTypeToString[message.transactionType]
+        console.log(`${type} ${executionType} ${message.quantity}x${message.symbol}`)
+      }
     } catch (error) {
-      console.error('Error handling order notification:', error);
+      console.error('Error handling order notification:', error)
     }
   }
 
   private handleExchangeOrderNotification(data: Buffer): void {
     try {
-      const message = this.protoLoader.decodeMessage('ExchangeOrderNotification', data);
-      console.log('Exchange order notification received:', {
-        status: message.status,
-        symbol: message.symbol,
-        exchange: message.exchange,
-        quantity: message.quantity,
-        price: message.price,
-        notifyType: message.notifyType
-      });
+      // const message = this.protoLoader.decodeMessage('ExchangeOrderNotification', data)
+      // console.log('Exchange order notification received:', {
+      //   status: message.status,
+      //   symbol: message.symbol,
+      //   exchange: message.exchange,
+      //   quantity: message.quantity,
+      //   price: message.price,
+      //   notifyType: message.notifyType
+      // })
     } catch (error) {
-      console.error('Error handling exchange order notification:', error);
+      console.error('Error handling exchange order notification:', error)
     }
   }
 
   private handleHeartbeatResponse(data: Buffer): void {
     try {
-      const message = this.protoLoader.decodeMessage('ResponseHeartbeat', data);
-      console.log('Heartbeat received');
+      const message = this.protoLoader.decodeMessage('ResponseHeartbeat', data)
+      console.log('Heartbeat received')
+      console.log(message)
     } catch (error) {
-      console.error('Error handling heartbeat response:', error);
+      console.error('Error handling heartbeat response:', error)
     }
   }
 
-  private authenticate(): void {
+  private async authenticate(): Promise<void> {
     const loginMessage = {
       templateId: 10,
       templateVersion: '3.9',
@@ -218,16 +221,19 @@ export class RithmicWebSocketService {
       appName: this.config.appName!,
       appVersion: this.config.appVersion!,
       systemName: this.config.systemName,
-      infraType: this.config.infraType!
-    };
+      infraType: 2
+    }
 
-    const buffer = this.protoLoader.createMessage('RequestLogin', loginMessage);
-    this.sendMessage(buffer);
+    const buffer = this.protoLoader.createMessage('RequestLogin', loginMessage)
+    this.sendMessage(buffer)
+    const response = await new Promise((resolve) => this.ws!.once('message', resolve))
+
+    this.handleAuthResponse(response as Buffer)
   }
 
   public subscribeToOrders(): void {
-    if (!this.state.fcmId || !this.state.ibId || !this.state.accountId) {
-      throw new Error('Cannot subscribe to orders: Missing required IDs');
+    if (!this.state.fcmId || !this.state.ibId) {
+      throw new Error('Cannot subscribe to orders: Missing required IDs')
     }
 
     const subscribeMessage = {
@@ -235,61 +241,68 @@ export class RithmicWebSocketService {
       userMsg: ['hello'],
       fcmId: this.state.fcmId,
       ibId: this.state.ibId,
-      accountId: this.state.accountId
-    };
+      accountId: 'AN7989'
+    }
 
-    const buffer = this.protoLoader.createMessage('RequestSubscribeForOrderUpdates', subscribeMessage);
-    this.sendMessage(buffer);
+    const buffer = this.protoLoader.createMessage(
+      'RequestSubscribeForOrderUpdates',
+      subscribeMessage
+    )
+    this.sendMessage(buffer)
   }
 
   public sendHeartbeat(): void {
     const heartbeatMessage = {
       templateId: 18
-    };
+    }
 
-    const buffer = this.protoLoader.createMessage('RequestHeartbeat', heartbeatMessage);
-    this.sendMessage(buffer);
+    const buffer = this.protoLoader.createMessage('RequestHeartbeat', heartbeatMessage)
+    this.sendMessage(buffer)
   }
 
   private handleDisconnect(): void {
-    this.state.isConnected = false;
+    this.state.isConnected = false
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
+      this.reconnectAttempts++
       setTimeout(() => {
-        console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-        this.connect().catch(error => {
-          console.error('Reconnection failed:', error);
-        });
-      }, this.reconnectTimeout);
+        console.log(
+          `Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`
+        )
+        this.connect().catch((error) => {
+          console.error('Reconnection failed:', error)
+        })
+      }, this.reconnectTimeout)
     } else {
-      console.error('Max reconnection attempts reached');
-      this.disconnect();
+      console.error('Max reconnection attempts reached')
+      this.disconnect()
     }
   }
 
   public disconnect(): void {
+    console.log('disconnecting');
+
     if (this.ws) {
       const logoutMessage = {
         templateId: 12,
         userMsg: ['goodbye']
-      };
-      const buffer = this.protoLoader.createMessage('RequestLogout', logoutMessage);
-      this.sendMessage(buffer);
-      this.ws.close(1000, "Normal closure");
-      this.ws = null;
-      this.state.isConnected = false;
+      }
+      const buffer = this.protoLoader.createMessage('RequestLogout', logoutMessage)
+      this.sendMessage(buffer)
+      this.ws.close(1000, 'Normal closure')
+      this.ws = null
+      this.state.isConnected = false
     }
   }
 
   private sendMessage(buffer: Buffer): void {
     if (this.ws && this.state.isConnected) {
-      this.ws.send(buffer);
+      this.ws.send(buffer)
     } else {
-      throw new Error('WebSocket is not connected');
+      throw new Error('WebSocket is not connected')
     }
   }
 
   public getState(): RithmicWebSocketState {
-    return { ...this.state };
+    return { ...this.state }
   }
-} 
+}
