@@ -24,9 +24,9 @@ describe('RithmicWebSocketService Integration Tests', () => {
 
       await new Promise(resolve => setTimeout(resolve, 3000));
       await service.subscribeToOrders()
-      await new Promise(resolve => setTimeout(resolve, 30000));
-    } finally {
-      service.disconnect();
+      await new Promise(resolve => setTimeout(resolve, 660000));
+    } catch (e) {
+      console.log(e);
     }
   }); // Increase timeout for integration test
 

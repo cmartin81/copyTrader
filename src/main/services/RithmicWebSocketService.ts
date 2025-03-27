@@ -48,9 +48,10 @@ export class RithmicWebSocketService {
     this.defineMappings()
     setInterval(() => {
       if (this.state.isConnected) {
+        process.stdout.write('❤️');
         this.sendHeartbeat()
       }
-    }, 20 * 1000)
+    }, 10 * 1000)
   }
 
   private defineMappings(): void {
@@ -83,6 +84,7 @@ export class RithmicWebSocketService {
     this.messageHandlers.set(351, this.handleOrderNotification.bind(this))
     this.messageHandlers.set(352, this.handleExchangeOrderNotification.bind(this))
     this.messageHandlers.set(19, this.handleHeartbeatResponse.bind(this))
+    this.messageHandlers.set(309, this.handleGenericSubscribeForOrderUpdates.bind(this))
   }
 
   public connect(): Promise<void> {
@@ -97,6 +99,8 @@ export class RithmicWebSocketService {
           this.state.isConnected = true
           this.reconnectAttempts = 0
           this.authenticate().then(() => {
+            console.log('DONE my job here...');
+
             resolve()
           })
         })
@@ -147,6 +151,7 @@ export class RithmicWebSocketService {
   private handleAuthResponse(data: Buffer): void {
     try {
       const message = this.protoLoader.decodeMessage('ResponseLogin', data)
+      console.log(message)
       if (message.rpCode[0] === '0') {
         this.state.fcmId = message.fcmId
         this.state.ibId = message.ibId
@@ -163,6 +168,15 @@ export class RithmicWebSocketService {
     }
   }
 
+  private handleGenericSubscribeForOrderUpdates(data: Buffer): void {
+    try {
+      const message = this.protoLoader.decodeMessage('ResponseSubscribeForOrderUpdates', data)
+      console.log({message});
+
+    } catch (error) {
+      console.error('Error handling order notification:', error)
+    }
+  }
   private handleOrderNotification(data: Buffer): void {
     try {
       const message = this.protoLoader.decodeMessage('RithmicOrderNotification', data)
@@ -204,8 +218,10 @@ export class RithmicWebSocketService {
   private handleHeartbeatResponse(data: Buffer): void {
     try {
       const message = this.protoLoader.decodeMessage('ResponseHeartbeat', data)
-      console.log('Heartbeat received')
-      console.log(message)
+      process.stdout.write('💞');
+
+      // console.log('Heartbeat received')
+      // console.log(message)
     } catch (error) {
       console.error('Error handling heartbeat response:', error)
     }
