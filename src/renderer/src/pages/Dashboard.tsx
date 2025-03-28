@@ -7,7 +7,10 @@ const Dashboard: React.FC = () => {
       <div className="hero bg-base-100 rounded-box shadow-xl mb-8">
         <div className="hero-content text-center">
           <div>
-            <h1 className="text-5xl font-bold mb-4">Welcome to CopyTrade</h1>
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <h1 className="text-5xl font-bold">Welcome to CopyTrade</h1>
+              <div className="badge badge-warning badge-lg">Beta</div>
+            </div>
             <p className="py-6 max-w-2xl mx-auto text-lg opacity-80">
               Your intelligent trading companion. The dashboard is coming soon with powerful features to help you manage and optimize your trading strategies.
             </p>
