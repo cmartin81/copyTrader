@@ -2,70 +2,73 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 export interface MasterAccount {
-  id: string
-  name: string
-  type: 'NinjaTrader' | 'MetaTrader' | 'TradingView'
-  connectionType: 'token' | 'oauth' | 'credentials'
+  type: 'PropFirm' | 'Personal'
+  connectionType: 'MT4' | 'MT5' | 'cTrader'
   credentials: {
-    token?: string
-    username?: string
-    password?: string
-    url?: string
+    username: string
+    password: string
+    server?: string
   }
 }
 
 export interface Bot {
   id: string
   name: string
-  masterAccount: MasterAccount | null
-  targetAccounts: Array<{
+  isRunning: boolean
+  isActive: boolean
+  pnl: number
+  targetAccounts: {
     id: string
     name: string
-    type: 'PropFirm' | 'TopStepX' | 'Tradovate'
+    type: 'PropFirm' | 'Personal'
     accountId: string
-    tickerMappings: Array<{
-      sourceTicker: string
-      targetTicker: string
-      multiplier: number
-      isEditing?: boolean
-    }>
-  }>
-  isRunning: boolean
+    tickerMappings: {
+      source: string
+      target: string
+      isEditing: boolean
+    }[]
+  }[]
+  masterAccount: MasterAccount
 }
 
 interface BotStore {
   bots: Bot[]
-  addBot: (name: string) => void
-  updateBot: (id: string, bot: Partial<Bot>) => void
+  addBot: (bot: Omit<Bot, 'id' | 'isRunning' | 'isActive' | 'pnl'>) => void
+  updateBot: (id: string, updates: Partial<Bot>) => void
   deleteBot: (id: string) => void
   toggleBot: (id: string) => void
+  updateBotPnl: (id: string, pnl: number) => void
 }
 
 export const useBotStore = create<BotStore>()(
   persist(
     (set) => ({
       bots: [],
-      addBot: (name: string): void => set((state) => ({
-        bots: [...state.bots, {
-          id: Date.now().toString(),
-          name,
-          masterAccount: null,
-          targetAccounts: [],
-          isRunning: false
-        }]
+      addBot: (bot) => set((state) => ({
+        bots: [
+          ...state.bots,
+          {
+            ...bot,
+            id: Math.random().toString(36).substr(2, 9),
+            isRunning: false,
+            isActive: false,
+            pnl: 0
+          }
+        ]
       })),
-      updateBot: (id: string, bot: Partial<Bot>): void => set((state) => ({
-        bots: state.bots.map((b) => 
-          b.id === id ? { ...b, ...bot } : b
+      updateBot: (id, updates) => set((state) => ({
+        bots: state.bots.map((bot) => (bot.id === id ? { ...bot, ...updates } : bot))
+      })),
+      deleteBot: (id) => set((state) => ({
+        bots: state.bots.filter((bot) => bot.id !== id)
+      })),
+      toggleBot: (id) => set((state) => ({
+        bots: state.bots.map((bot) =>
+          bot.id === id ? { ...bot, isRunning: !bot.isRunning } : bot
         )
       })),
-      deleteBot: (id: string): void => set((state) => ({
-        bots: state.bots.filter((b) => b.id !== id)
-      })),
-      toggleBot: (id: string): void => set((state) => ({
-        bots: state.bots.map((b) => 
-          b.id === id ? { ...b, isRunning: !b.isRunning } : b
-        )
+      updateBotPnl: (id, pnl) => set((state) => ({
+        bots: state.bots.map((bot) => (bot.id === id ? { ...bot, pnl } : bot))
       }))
     }),
     {

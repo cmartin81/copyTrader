@@ -4,10 +4,10 @@ import { useBotStore, Bot, MasterAccount } from '../store/botStore'
 
 type LogSize = 'normal' | 'half' | 'full'
 
-const Accounts: React.FC = () => {
+const Bots: React.FC = () => {
   const { botId } = useParams<{ botId: string }>()
   const navigate = useNavigate()
-  const { bots, updateBot, toggleBot, deleteBot } = useBotStore()
+  const { bots, updateBot, toggleBot, deleteBot, updateBotPnl } = useBotStore()
   const bot = bots.find(b => b.id === botId)
 
   const [logs, setLogs] = useState<string[]>([])
@@ -33,6 +33,22 @@ const Accounts: React.FC = () => {
     }
   }, [bot, navigate, isEditingName])
 
+  // Listen for state updates from main process
+  useEffect(() => {
+    const handleStateUpdate = (sessionState: any, appState: any, bots: any[]): void => {
+      const updatedBot = bots.find(b => b.id === botId)
+      if (updatedBot) {
+        updateBotPnl(botId!, updatedBot.pnl)
+      }
+    }
+
+    window.api.onStateUpdate(handleStateUpdate)
+
+    return () => {
+      window.electron.ipcRenderer.removeAllListeners('state-updated')
+    }
+  }, [botId, updateBotPnl])
+
   if (!bot) {
     return null
   }
@@ -48,39 +64,45 @@ const Accounts: React.FC = () => {
   const handleSaveName = (): void => {
     if (editedName.trim() && editedName !== bot.name) {
       updateBot(bot.id, { name: editedName.trim() })
-      addLog(`Bot renamed to: ${editedName.trim()}`)
+      setIsEditingName(false)
+      addLog(`Bot name updated to: ${editedName.trim()}`)
     }
-    setIsEditingName(false)
   }
 
-  const toggleBotRunning = (): void => {
-    toggleBot(bot.id)
-    addLog(`Bot ${!bot.isRunning ? 'started' : 'stopped'}: ${bot.name}`)
+  const toggleBotRunning = async (): Promise<void> => {
+    try {
+      if (!bot.isRunning) {
+        // Start the bot
+        const response = await window.electron.ipcRenderer.invoke('launch-puppeteer', bot.id, bot.name)
+        if (response.success) {
+          toggleBot(bot.id)
+          updateBot(bot.id, { isActive: true })
+          addLog('Bot started successfully')
+        } else {
+          console.error('Failed to start bot:', response.error)
+          addLog(`Failed to start bot: ${response.error}`)
+        }
+      } else {
+        // Stop the bot
+        const response = await window.electron.ipcRenderer.invoke('close-bot-window', bot.id)
+        if (response.success) {
+          toggleBot(bot.id)
+          updateBot(bot.id, { isActive: false })
+          addLog('Bot stopped successfully')
+        } else {
+          console.error('Failed to stop bot:', response.error)
+          addLog(`Failed to stop bot: ${response.error}`)
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling bot:', error)
+      addLog(`Error toggling bot: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   const addLog = (message: string): void => {
-    setLogs(prev => {
-      const newLogs = [...prev, `${new Date().toLocaleTimeString()} - ${message}`]
-      if (isTailing) {
-        setTimeout(() => {
-          if (logContainerRef.current) {
-            const container = logContainerRef.current
-            container.scrollTop = isReversed ? 0 : container.scrollHeight
-          }
-        }, 0)
-      }
-      return newLogs
-    })
-  }
-
-  const toggleOrder = (): void => {
-    setIsReversed(prev => !prev)
-    setTimeout(() => {
-      if (logContainerRef.current && isTailing) {
-        const container = logContainerRef.current
-        container.scrollTop = !isReversed ? 0 : container.scrollHeight
-      }
-    }, 0)
+    const timestamp = new Date().toLocaleTimeString()
+    setLogs(prev => [...prev, `[${timestamp}] ${message}`])
   }
 
   const handleMasterAccountTypeChange = (type: MasterAccount['type']): void => {
@@ -608,7 +630,7 @@ const Accounts: React.FC = () => {
                 </button>
                 <button
                   className={`join-item btn btn-sm ${isReversed ? 'btn-primary' : 'btn-ghost'}`}
-                  onClick={toggleOrder}
+                  onClick={() => setIsReversed(prev => !prev)}
                   title={isReversed ? 'Show newest last' : 'Show newest first'}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -669,4 +691,4 @@ const Accounts: React.FC = () => {
   )
 }
 
-export default Accounts 
+export default Bots 
