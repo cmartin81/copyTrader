@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { useSettingsStore, Theme } from '../store/settingsStore'
 import { useSessionStore } from '../store/sessionStore'
+import { useBotStore } from '../store/botStore'
 
 const Settings: React.FC = () => {
   const { theme, setTheme } = useSettingsStore()
   const { addAlert } = useSessionStore()
+  const { bots, deleteBot } = useBotStore()
   const [ngrokAuthToken, setNgrokAuthToken] = useState('')
   const [ngrokUrl, setNgrokUrl] = useState('')
 
@@ -60,6 +62,10 @@ const Settings: React.FC = () => {
 
   const handleResetSettings = async (): Promise<void> => {
     try {
+      // Clear all bots from Zustand store
+      bots.forEach(bot => deleteBot(bot.id))
+      
+      // Reset settings in main process
       const response = await window.electron.ipcRenderer.invoke('reset-all-settings')
       if (response.success) {
         addAlert('success', 'Settings reset successfully!')

@@ -555,7 +555,7 @@ const Bots: React.FC = () => {
                         <span>×</span>
                         <input
                           type="number"
-                          className="input input-bordered input-sm w-20"
+                          className="input input-bordered input-sm w-12"
                           value={mapping.multiplier}
                           disabled={!mapping.isEditing}
                           onChange={(e) => {
@@ -567,7 +567,7 @@ const Bots: React.FC = () => {
                               )
                             })
                           }}
-                          step="0.1"
+                          step="1"
                         />
                         <div className="space-x-1">
                           {mapping.isEditing ? (

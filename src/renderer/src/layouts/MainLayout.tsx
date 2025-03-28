@@ -21,7 +21,19 @@ const MainLayout = (): JSX.Element => {
 
   const handleAddBot = (): void => {
     if (newBotName.trim()) {
-      addBot(newBotName.trim())
+      addBot({
+        name: newBotName.trim(),
+        targetAccounts: [],
+        masterAccount: {
+          type: 'PropFirm',
+          connectionType: 'MT4',
+          credentials: {
+            username: '',
+            password: '',
+            server: ''
+          }
+        }
+      })
       setNewBotName('')
       setIsAddBotModalOpen(false)
     }
@@ -233,6 +245,34 @@ const MainLayout = (): JSX.Element => {
           </div>
         </main>
       </div>
+
+      {/* Add Bot Modal */}
+      <dialog className={`modal ${isAddBotModalOpen ? 'modal-open' : ''}`}>
+        <div className="modal-box">
+          <h3 className="font-bold text-lg mb-4">Add New Bot</h3>
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">Bot Name</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Enter bot name"
+              className="input input-bordered"
+              value={newBotName}
+              onChange={(e) => setNewBotName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleAddBot()
+                }
+              }}
+            />
+          </div>
+          <div className="modal-action">
+            <button className="btn" onClick={() => setIsAddBotModalOpen(false)}>Cancel</button>
+            <button className="btn btn-primary" onClick={handleAddBot}>Add Bot</button>
+          </div>
+        </div>
+      </dialog>
     </div>
   )
 }
