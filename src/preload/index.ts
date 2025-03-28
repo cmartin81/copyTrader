@@ -2,6 +2,19 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import { AppState, SessionState } from '../shared/types'
 
+interface Bot {
+  id: string
+  name: string
+  pnl: number
+  isActive: boolean
+}
+
+interface StateUpdate {
+  sessionState: SessionState
+  appState: AppState
+  bots: Bot[]
+}
+
 // Custom APIs for renderer
 const api = {
   // Session counter methods
@@ -19,23 +32,16 @@ const api = {
   },
 
   // State listeners
-  onStateUpdate: (callback: (sessionState: SessionState, appState: AppState) => void): void => {
-    ipcRenderer.on('state-updated', (_event, sessionState, appState) => {
-      callback(sessionState, appState)
+  onStateUpdate: (callback: (sessionState: SessionState, appState: AppState, bots: Bot[]) => void): void => {
+    ipcRenderer.on('state-updated', (_event, sessionState, appState, bots) => {
+      callback(sessionState, appState, bots)
     })
   },
 
   // Initial state request
-  getInitialState: (): Promise<{ sessionState: SessionState, appState: AppState }> => {
+  getInitialState: (): Promise<StateUpdate> => {
     return ipcRenderer.invoke('get-initial-state')
   }
-}
-
-// Define the type for our exposed API
-interface ElectronAPI {
-  ipcRenderer: {
-    invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
-  };
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
@@ -45,11 +51,6 @@ if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
-    contextBridge.exposeInMainWorld('electron', {
-      ipcRenderer: {
-        invoke: (channel: string, ...args: unknown[]) => ipcRenderer.invoke(channel, ...args),
-      },
-    } as ElectronAPI)
   } catch (error) {
     console.error(error)
   }

@@ -6,6 +6,7 @@ const Settings: React.FC = () => {
   const [ngrokAuthToken, setNgrokAuthToken] = useState('')
   const [ngrokUrl, setNgrokUrl] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [resetSuccess, setResetSuccess] = useState(false)
 
   const themes: { value: Theme; label: string }[] = [
     { value: 'light', label: 'Light'},
@@ -62,6 +63,20 @@ const Settings: React.FC = () => {
     setTimeout(() => {
       setSaveSuccess(false)
     }, 3000)
+  }
+
+  const handleResetSettings = async (): Promise<void> => {
+    try {
+      const response = await window.electron.ipcRenderer.invoke('reset-all-settings')
+      if (response.success) {
+        setResetSuccess(true)
+        setTimeout(() => setResetSuccess(false), 3000)
+      } else {
+        console.error('Failed to reset settings:', response.error)
+      }
+    } catch (error) {
+      console.error('Error resetting settings:', error)
+    }
   }
 
   return (
@@ -186,6 +201,21 @@ const Settings: React.FC = () => {
             <button className="btn btn-outline btn-warning">Reset All Settings</button>
             <button className="btn btn-outline btn-error">Delete Account</button>
           </div>
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold mb-4">Reset Settings</h2>
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={handleResetSettings}
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+          >
+            Reset All Settings
+          </button>
+          {resetSuccess && (
+            <span className="text-green-500">Settings reset successfully!</span>
+          )}
         </div>
       </div>
     </div>

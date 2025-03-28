@@ -2,7 +2,7 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { getAppState, updateAppCounter } from './store'
+import { getAppState, updateAppCounter, getBots, addBot, updateBotPnl, removeBot, updateBotStatus, clearAllBots } from './store'
 import { SessionState } from '../shared/types'
 import pie from 'puppeteer-in-electron'
 import puppeteer from 'puppeteer-core'
@@ -21,6 +21,11 @@ const activeBrowsers = new Map<string, BrowserWindow>()
 
 // Initialize puppeteer-in-electron before app is ready
 pie.initialize(app).catch(console.error);
+
+// Function to broadcast state updates to all renderer processes
+const broadcastState = (): void => {
+  mainWindow?.webContents.send('state-updated', sessionState, getAppState(), getBots())
+}
 
 function createWindow(): void {
   // Create the browser window.
@@ -53,16 +58,37 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
   
-  // Function to broadcast state updates to all renderer processes
-  const broadcastState = (): void => {
-    mainWindow?.webContents.send('state-updated', sessionState, getAppState())
-  }
-  
   // Set up IPC handlers for state management
   ipcMain.handle('get-initial-state', () => {
     return {
       sessionState,
-      appState: getAppState()
+      appState: getAppState(),
+      bots: getBots()
+    }
+  })
+  
+  // Add handler for resetting all settings
+  ipcMain.handle('reset-all-settings', async () => {
+    try {
+      // Close all bot windows
+      activeBrowsers.forEach((browserWindow) => {
+        browserWindow.close()
+      })
+      activeBrowsers.clear()
+
+      // Clear all bots from store
+      clearAllBots()
+
+      // Broadcast the updated state
+      broadcastState()
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error resetting settings:', error)
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'An unknown error occurred' 
+      }
     }
   })
   
@@ -105,13 +131,21 @@ function createWindow(): void {
     const newValue = appState.appCounter + 10
     updateAppCounter(newValue)
     
+    // Update PnL for all active bots
+    const bots = getBots()
+    bots.forEach(bot => {
+      if (bot.isActive) {
+        updateBotPnl(bot.id, bot.pnl + 1)
+      }
+    })
+    
     // Broadcast the updates to the renderer
     broadcastState()
   }, 10000)
 }
 
 // Handle Puppeteer launch request
-ipcMain.handle('launch-puppeteer', async (_, botId: string) => {
+ipcMain.handle('launch-puppeteer', async (_, botId: string, botName: string) => {
   try {
     // Create a new browser window
     const browserWindow = new BrowserWindow({
@@ -126,6 +160,9 @@ ipcMain.handle('launch-puppeteer', async (_, botId: string) => {
 
     // Store the window instance
     activeBrowsers.set(botId, browserWindow);
+
+    // Add bot to store
+    addBot({ id: botId, name: botName, isActive: true });
 
     // Connect puppeteer to the window
     const browser = await pie.connect(app, puppeteer as any);
@@ -163,6 +200,8 @@ ipcMain.handle('launch-puppeteer', async (_, botId: string) => {
     // Listen for window close event
     browserWindow.on('closed', () => {
       activeBrowsers.delete(botId);
+      updateBotStatus(botId, false);
+      removeBot(botId); // Remove the bot from the store when window is closed
       // Notify renderer that the window was closed
       BrowserWindow.getAllWindows().forEach(window => {
         window.webContents.send('bot-window-closed', botId);
@@ -186,6 +225,8 @@ ipcMain.handle('close-bot-window', async (_, botId: string) => {
     if (browserWindow) {
       browserWindow.close();
       activeBrowsers.delete(botId);
+      updateBotStatus(botId, false);
+      removeBot(botId); // Remove the bot from the store
       return { success: true };
     }
     return { success: false, error: 'Window not found' };
@@ -253,6 +294,11 @@ app.on('window-all-closed', () => {
 
 // Clear the interval when the app is about to quit
 app.on('before-quit', () => {
+  // Close all bot windows
+  activeBrowsers.forEach((browserWindow) => {
+    browserWindow.close()
+  })
+  activeBrowsers.clear()
   mainWindow = null
 })
 
