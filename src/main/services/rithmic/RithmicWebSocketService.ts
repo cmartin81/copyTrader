@@ -190,8 +190,7 @@ export class RithmicWebSocketService {
       // });
       if (message.status === 'complete' && message.totalFillSize !== 0) {
         // console.log(message)
-        const executionTyp
-        e = this.priceTypeToString[message.priceType]
+        const executionType = this.priceTypeToString[message.priceType]
         const type = this.transactionTypeToString[message.transactionType]
         console.log(`${type} ${executionType} ${message.quantity}x${message.symbol}`)
       }
