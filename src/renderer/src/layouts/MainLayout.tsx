@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useBotStore } from '../store/botStore'
 import { useSessionStore } from '../store/sessionStore'
 import Alert from '../components/Alert'
+import copyTradeLogo from '@renderer/assets/copyTradeLogo1.png'
 
 interface MenuItem {
   name: string
@@ -56,8 +57,12 @@ const MainLayout = (): JSX.Element => {
         <div>
           <div className="p-4 mb-8">
             <div className="flex items-center">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-                <span className="text-primary-content font-bold text-lg tracking-wider">XL</span>
+              <div className="w-10 h-10 flex items-center justify-center shadow-lg shadow-primary/20">
+                <img 
+                  src={copyTradeLogo} 
+                  alt="CopyTrader Logo" 
+                  className="w-full h-full object-contain rounded-xl"
+                />
               </div>
               <div className="flex flex-col pl-3">
                 <span className="font-semibold text-lg tracking-wide">CopyTrader</span>

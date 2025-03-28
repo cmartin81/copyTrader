@@ -7,7 +7,7 @@ const Dashboard: React.FC = () => {
       <div className="hero bg-base-100 rounded-box shadow-xl mb-8">
         <div className="hero-content text-center">
           <div>
-            <h1 className="text-5xl font-bold mb-4">Welcome to CopyTrader</h1>
+            <h1 className="text-5xl font-bold mb-4">Welcome to CopyTrade</h1>
             <p className="py-6 max-w-2xl mx-auto text-lg opacity-80">
               Your intelligent trading companion. The dashboard is coming soon with powerful features to help you manage and optimize your trading strategies.
             </p>
@@ -72,7 +72,7 @@ const Dashboard: React.FC = () => {
               </div>
               <h2 className="card-title">Support Pages</h2>
             </div>
-            <p className="opacity-70 mb-4">Access comprehensive documentation, guides, and FAQs to help you get the most out of CopyTrader.</p>
+            <p className="opacity-70 mb-4">Access comprehensive documentation, guides, and FAQs to help you get the most out of CopyTrade.</p>
             <div className="badge badge-primary">Coming Soon</div>
           </div>
         </div>
