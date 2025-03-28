@@ -11,22 +11,20 @@ const api = {
   decrementSessionCounter: (): void => {
     ipcRenderer.send('decrement-session-counter')
   },
-  
-  // App counter methods 
   incrementAppCounter: (): void => {
     ipcRenderer.send('increment-app-counter')
   },
   decrementAppCounter: (): void => {
     ipcRenderer.send('decrement-app-counter')
   },
-  
+
   // State listeners
   onStateUpdate: (callback: (sessionState: SessionState, appState: AppState) => void): void => {
     ipcRenderer.on('state-updated', (_event, sessionState, appState) => {
       callback(sessionState, appState)
     })
   },
-  
+
   // Initial state request
   getInitialState: (): Promise<{ sessionState: SessionState, appState: AppState }> => {
     return ipcRenderer.invoke('get-initial-state')
