@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { useSettingsStore, Theme } from '../store/settingsStore'
+import { useSessionStore } from '../store/sessionStore'
 
 const Settings: React.FC = () => {
   const { theme, setTheme } = useSettingsStore()
+  const { addAlert } = useSessionStore()
   const [ngrokAuthToken, setNgrokAuthToken] = useState('')
   const [ngrokUrl, setNgrokUrl] = useState('')
-  const [saveSuccess, setSaveSuccess] = useState(false)
-  const [resetSuccess, setResetSuccess] = useState(false)
 
   const themes: { value: Theme; label: string }[] = [
     { value: 'light', label: 'Light'},
@@ -55,28 +55,33 @@ const Settings: React.FC = () => {
   const handleSaveSettings = (): void => {
     // This would typically save to a config file or database
     console.log('Saving settings:', { ngrokAuthToken, ngrokUrl })
-    
-    // Show success message
-    setSaveSuccess(true)
-    
-    // Hide success message after 3 seconds
-    setTimeout(() => {
-      setSaveSuccess(false)
-    }, 3000)
+    addAlert('success', 'Settings saved successfully!')
   }
 
   const handleResetSettings = async (): Promise<void> => {
     try {
       const response = await window.electron.ipcRenderer.invoke('reset-all-settings')
       if (response.success) {
-        setResetSuccess(true)
-        setTimeout(() => setResetSuccess(false), 3000)
+        addAlert('success', 'Settings reset successfully!')
       } else {
-        console.error('Failed to reset settings:', response.error)
+        addAlert('error', 'Failed to reset settings')
       }
     } catch (error) {
-      console.error('Error resetting settings:', error)
+      addAlert('error', 'Error resetting settings')
     }
+  }
+
+  const testAlerts = (): void => {
+    addAlert('success', 'This is a success alert!')
+    setTimeout(() => {
+      addAlert('error', 'This is an error alert!')
+    }, 3500)
+    setTimeout(() => {
+      addAlert('warning', 'This is a warning alert!')
+    }, 7000)
+    setTimeout(() => {
+      addAlert('info', 'This is an info alert!')
+    }, 10500)
   }
 
   return (
@@ -105,29 +110,6 @@ const Settings: React.FC = () => {
             <label className="label">
               <span className="label-text-alt">Select your preferred theme</span>
             </label>
-          </div>
-
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 mt-4">
-            {themes.map((t) => (
-              <div
-                key={t.value}
-                className={`card bg-base-100 cursor-pointer transition-all hover:scale-105 ${
-                  theme === t.value ? 'ring-2 ring-primary' : ''
-                }`}
-                onClick={() => setTheme(t.value)}
-                data-theme={t.value}
-              >
-                <div className="card-body items-center text-center p-2">
-                  <div className="flex gap-0.5">
-                    <div className="w-1.5 h-6 bg-primary rounded" />
-                    <div className="w-1.5 h-6 bg-secondary rounded" />
-                    <div className="w-1.5 h-6 bg-accent rounded" />
-                    <div className="w-1.5 h-6 bg-neutral rounded" />
-                  </div>
-                  <h3 className="text-xs font-medium mt-1">{t.label}</h3>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </div>
@@ -179,15 +161,6 @@ const Settings: React.FC = () => {
             >
               Save Settings
             </button>
-            
-            {saveSuccess && (
-              <div className="alert alert-success mt-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Settings saved successfully!</span>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -198,24 +171,34 @@ const Settings: React.FC = () => {
           <p className="opacity-70 mb-4">Destructive actions that cannot be reversed</p>
           
           <div className="flex flex-col sm:flex-row gap-4">
-            <button className="btn btn-outline btn-warning">Reset All Settings</button>
+            <button className="btn btn-outline btn-warning" onClick={handleResetSettings}>Reset All Settings</button>
             <button className="btn btn-outline btn-error">Delete Account</button>
           </div>
         </div>
       </div>
 
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Reset Settings</h2>
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={handleResetSettings}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-          >
-            Reset All Settings
-          </button>
-          {resetSuccess && (
-            <span className="text-green-500">Settings reset successfully!</span>
-          )}
+      <div className="card bg-base-100 shadow-xl mt-8">
+        <div className="card-body">
+          <h2 className="card-title mb-4">Test Alerts</h2>
+          <p className="opacity-70 mb-4">Test different types of alerts</p>
+          
+          <div className="flex flex-wrap gap-4">
+            <button className="btn btn-success" onClick={() => addAlert('success', 'Success alert!')}>
+              Test Success
+            </button>
+            <button className="btn btn-error" onClick={() => addAlert('error', 'Error alert!')}>
+              Test Error
+            </button>
+            <button className="btn btn-warning" onClick={() => addAlert('warning', 'Warning alert!')}>
+              Test Warning
+            </button>
+            <button className="btn btn-info" onClick={() => addAlert('info', 'Info alert!')}>
+              Test Info
+            </button>
+            <button className="btn btn-primary" onClick={testAlerts}>
+              Test All Alerts
+            </button>
+          </div>
         </div>
       </div>
     </div>
