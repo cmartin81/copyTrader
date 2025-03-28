@@ -31,6 +31,13 @@ const api = {
   }
 }
 
+// Define the type for our exposed API
+interface ElectronAPI {
+  ipcRenderer: {
+    invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
+  };
+}
+
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
 // just add to the DOM global.
@@ -38,6 +45,11 @@ if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('electron', {
+      ipcRenderer: {
+        invoke: (channel: string, ...args: unknown[]) => ipcRenderer.invoke(channel, ...args),
+      },
+    } as ElectronAPI)
   } catch (error) {
     console.error(error)
   }

@@ -4,6 +4,9 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { getAppState, updateAppCounter } from './store'
 import { SessionState } from '../shared/types'
+import pie from 'puppeteer-in-electron'
+import puppeteer from 'puppeteer-core'
+import type { Browser } from 'puppeteer-core'
 
 // Session state (non-persistent, reset on app restart)
 const sessionState: SessionState = {
@@ -12,6 +15,12 @@ const sessionState: SessionState = {
 
 // Reference to main window for broadcasting from interval
 let mainWindow: BrowserWindow | null = null
+
+// Store active browser instances
+const activeBrowsers = new Map<string, BrowserWindow>()
+
+// Initialize puppeteer-in-electron before app is ready
+pie.initialize(app).catch(console.error);
 
 function createWindow(): void {
   // Create the browser window.
@@ -100,6 +109,115 @@ function createWindow(): void {
     broadcastState()
   }, 10000)
 }
+
+// Handle Puppeteer launch request
+ipcMain.handle('launch-puppeteer', async (_, botId: string) => {
+  try {
+    // Create a new browser window
+    const browserWindow = new BrowserWindow({
+      width: 800,
+      height: 600,
+      show: false,
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: false
+      }
+    });
+
+    // Store the window instance
+    activeBrowsers.set(botId, browserWindow);
+
+    // Connect puppeteer to the window
+    const browser = await pie.connect(app, puppeteer as any);
+    const page = await pie.getPage(browser, browserWindow);
+
+    // Load the URL
+    await browserWindow.loadURL('https://www.google.com');
+    browserWindow.show();
+
+    // Type "hello" in the search field after 4 seconds
+    setTimeout(async () => {
+      if (activeBrowsers.has(botId)) {
+        try {
+          await page.type('textarea[name="q"]', 'hello');
+        } catch (error) {
+          console.error('Error typing in search field:', error);
+        }
+      }
+    }, 4000);
+
+    // Execute console.log and alert after 8 seconds
+    setTimeout(async () => {
+      if (activeBrowsers.has(botId)) {
+        try {
+          await page.evaluate(() => {
+            console.log('hello from electron');
+            alert('hi');
+          });
+        } catch (error) {
+          console.error('Error executing delayed commands:', error);
+        }
+      }
+    }, 8000);
+
+    // Listen for window close event
+    browserWindow.on('closed', () => {
+      activeBrowsers.delete(botId);
+      // Notify renderer that the window was closed
+      BrowserWindow.getAllWindows().forEach(window => {
+        window.webContents.send('bot-window-closed', botId);
+      });
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Puppeteer error:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'An unknown error occurred' 
+    };
+  }
+});
+
+// Handle window close request
+ipcMain.handle('close-bot-window', async (_, botId: string) => {
+  try {
+    const browserWindow = activeBrowsers.get(botId);
+    if (browserWindow) {
+      browserWindow.close();
+      activeBrowsers.delete(botId);
+      return { success: true };
+    }
+    return { success: false, error: 'Window not found' };
+  } catch (error) {
+    console.error('Error closing window:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'An unknown error occurred' 
+    };
+  }
+});
+
+// Handle execute command request
+ipcMain.handle('execute-command', async (_, botId: string, command: string) => {
+  try {
+    const browserWindow = activeBrowsers.get(botId);
+    if (!browserWindow) {
+      return { success: false, error: 'Window not found' };
+    }
+
+    const browser = await pie.connect(app, puppeteer as any);
+    const page = await pie.getPage(browser, browserWindow);
+    await page.evaluate(command);
+    return { success: true };
+  } catch (error) {
+    console.error('Error executing command:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'An unknown error occurred' 
+    };
+  }
+});
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

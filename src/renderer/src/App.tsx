@@ -13,6 +13,7 @@ import Accounts from './pages/Accounts'
 import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
 import KitchenSink from './pages/KitchenSink'
+import BotPage from './pages/BotPage'
 
 function App(): JSX.Element {
   const { isLoading } = useStore()
@@ -49,6 +50,7 @@ function App(): JSX.Element {
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="bots">
+            <Route index element={<BotPage />} />
             <Route path=":botId" element={<Accounts />} />
           </Route>
           <Route path="analytics" element={<Analytics />} />
