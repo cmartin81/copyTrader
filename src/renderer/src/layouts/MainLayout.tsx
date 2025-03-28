@@ -13,7 +13,6 @@ interface MenuItem {
 const MainLayout = (): JSX.Element => {
   const [username] = useState('Admin User')
   const [email] = useState('admin@xlink.com')
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isAddBotModalOpen, setIsAddBotModalOpen] = useState(false)
   const [newBotName, setNewBotName] = useState('')
   const { bots, addBot } = useBotStore()
@@ -144,73 +143,75 @@ const MainLayout = (): JSX.Element => {
         
         {/* User info */}
         <div className="p-4 mt-auto border-t border-base-content/10 pt-4 pb-6">
-          <button
-            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-            className="w-full flex items-center px-4 py-3 rounded-xl bg-base-content/5 hover:bg-base-content/10 transition-all duration-200 group"
-          >
-            <div className="w-9 h-9 rounded-lg bg-base-content/10 flex items-center justify-center">
-              <span className="text-sm font-medium">AD</span>
-            </div>
-            <div className="flex-1 text-left pl-3">
-              <div className="text-sm font-medium tracking-wide group-hover:text-primary transition-colors">{username}</div>
-              <div className="text-xs text-base-content/50">{email}</div>
-            </div>
-            <svg
-              className={`w-4 h-4 text-base-content/50 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          <div className="dropdown dropdown-top w-full">
+            <button
+              tabIndex={0}
+              className="w-full flex items-center px-4 py-3 rounded-xl bg-base-content/5 hover:bg-base-content/10 transition-all duration-200 group"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          
-          {/* User Menu Dropdown */}
-          {isUserMenuOpen && (
-            <div className="absolute bottom-28 left-4 right-4 bg-base-300 rounded-xl border border-base-content/10 shadow-xl overflow-hidden">
-              <div className="py-1.5">
-                <button className="w-full flex items-center px-4 py-2.5 text-sm text-base-content/70 hover:bg-base-content/5 hover:text-base-content transition-colors group">
+              <div className="w-9 h-9 rounded-lg bg-base-content/10 flex items-center justify-center">
+                <span className="text-sm font-medium">AD</span>
+              </div>
+              <div className="flex-1 text-left pl-3">
+                <div className="text-sm font-medium tracking-wide group-hover:text-primary transition-colors">{username}</div>
+                <div className="text-xs text-base-content/50">{email}</div>
+              </div>
+              <svg
+                className="w-4 h-4 text-base-content/50"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow-lg bg-base-300 rounded-xl w-full border border-base-content/10">
+              <li>
+                <button className="flex items-center gap-2 text-base-content/70 hover:bg-base-content/5 hover:text-base-content">
                   <svg
-                    className="w-4 h-4 text-base-content/50 group-hover:text-primary transition-colors"
+                    className="w-4 h-4 text-base-content/50"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  <span>Restart</span>
+                  Restart
                 </button>
-                <button className="w-full flex items-center px-4 py-2.5 text-sm text-base-content/70 hover:bg-base-content/5 hover:text-base-content transition-colors group">
+              </li>
+              <li>
+                <button className="flex items-center gap-2 text-base-content/70 hover:bg-base-content/5 hover:text-base-content">
                   <svg
-                    className="w-4 h-4 text-base-content/50 group-hover:text-primary transition-colors"
+                    className="w-4 h-4 text-base-content/50"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
-                  <span>Logout</span>
+                  Logout
                 </button>
-                <button className="w-full flex items-center px-4 py-2.5 text-sm text-error hover:bg-error/10 hover:text-error transition-colors group border-t border-base-content/10">
+              </li>
+              <li>
+                <button className="flex items-center gap-2 text-error hover:bg-error/10 hover:text-error border-t border-base-content/10">
                   <svg
-                    className="w-4 h-4 text-error/70 group-hover:text-error transition-colors"
+                    className="w-4 h-4 text-error/70"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" />
                   </svg>
-                  <span>Shutdown</span>
+                  Shutdown
                 </button>
-              </div>
-            </div>
-          )}
+              </li>
+            </ul>
+          </div>
         </div>
       </aside>
       
       {/* Main content */}
       <div className="flex-1 flex flex-col">
-        <main className="flex-1 p-6 bg-base-200 overflow-y-auto">
+        <main className="flex-1 bg-base-200 overflow-y-auto">
           <div className="max-w-7xl">
             {/* Alerts container */}
             <div className="fixed top-4 right-4 z-50 space-y-2">

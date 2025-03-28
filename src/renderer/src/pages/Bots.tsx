@@ -358,7 +358,7 @@ const Bots: React.FC = () => {
       <div className="flex flex-col flex-1 min-h-0 relative">
         <div className={getMainContentClassName()}>
           {/* Left Side - Master Account */}
-          <div className="w-1/2 bg-base-300 rounded-lg p-6 overflow-auto">
+          <div className="w-2/5 bg-base-300 rounded-lg p-6 overflow-auto">
             <h2 className="text-xl font-semibold mb-4">Master Account</h2>
             <div className="space-y-4">
               <div>
@@ -430,7 +430,7 @@ const Bots: React.FC = () => {
           </div>
 
           {/* Right Side - Target Accounts */}
-          <div className="w-1/2 bg-base-300 rounded-lg p-6 overflow-auto">
+          <div className="w-3/5 bg-base-300 rounded-lg p-6 overflow-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Target Accounts</h2>
               <button
