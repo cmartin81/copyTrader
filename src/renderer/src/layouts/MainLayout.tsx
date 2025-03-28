@@ -1,6 +1,8 @@
+import React, { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { useState } from 'react'
 import { useBotStore } from '../store/botStore'
+import { useSessionStore } from '../store/sessionStore'
+import Alert from '../components/Alert'
 
 interface MenuItem {
   name: string
@@ -15,6 +17,7 @@ const MainLayout = (): JSX.Element => {
   const [isAddBotModalOpen, setIsAddBotModalOpen] = useState(false)
   const [newBotName, setNewBotName] = useState('')
   const { bots, addBot } = useBotStore()
+  const { alerts, removeAlert } = useSessionStore()
 
   const handleAddBot = (): void => {
     if (newBotName.trim()) {
@@ -30,16 +33,7 @@ const MainLayout = (): JSX.Element => {
       path: '/',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h8m-8 6h16" />
-        </svg>
-      )
-    },
-    {
-      name: 'Analytics',
-      path: '/analytics',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
         </svg>
       )
     },
@@ -52,16 +46,7 @@ const MainLayout = (): JSX.Element => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       )
-    },
-    // {
-    //   name: 'Kitchen Sink',
-    //   path: '/kitchen-sink',
-    //   icon: (
-    //     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    //       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-    //     </svg>
-    //   )
-    // }
+    }
   ]
 
   return (
@@ -227,44 +212,21 @@ const MainLayout = (): JSX.Element => {
       <div className="flex-1 flex flex-col">
         <main className="flex-1 p-6 bg-base-200 overflow-y-auto">
           <div className="max-w-7xl">
+            {/* Alerts container */}
+            <div className="fixed top-4 right-4 z-50 space-y-2">
+              {alerts.map((alert) => (
+                <Alert
+                  key={alert.id}
+                  type={alert.type}
+                  message={alert.message}
+                  onDismiss={() => removeAlert(alert.id)}
+                />
+              ))}
+            </div>
             <Outlet />
           </div>
         </main>
       </div>
-
-      {/* Add Bot Modal */}
-      {isAddBotModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-base-100 rounded-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add New Trading Bot</h2>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Bot Name</span>
-              </label>
-              <input
-                type="text"
-                placeholder="Enter bot name"
-                className="input input-bordered w-full"
-                value={newBotName}
-                onChange={(e) => setNewBotName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleAddBot()
-                  }
-                }}
-              />
-            </div>
-            <div className="modal-action">
-              <button className="btn btn-ghost" onClick={() => setIsAddBotModalOpen(false)}>
-                Cancel
-              </button>
-              <button className="btn btn-primary" onClick={handleAddBot}>
-                Add Bot
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
