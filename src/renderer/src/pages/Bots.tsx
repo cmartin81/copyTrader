@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useBotStore, Bot, MasterAccount } from '../store/botStore'
+import { createPortal } from 'react-dom'
 
 type LogSize = 'normal' | 'half' | 'full'
 
@@ -16,6 +17,8 @@ const Bots: React.FC = () => {
   const [isReversed, setIsReversed] = useState(false)
   const [isEditingName, setIsEditingName] = useState(false)
   const [editedName, setEditedName] = useState('')
+  const [isEditingAvatar, setIsEditingAvatar] = useState(false)
+  const [selectedAvatar, setSelectedAvatar] = useState<string>('')
   const logContainerRef = React.useRef<HTMLDivElement>(null)
   const [showAddTarget, setShowAddTarget] = useState(false)
   const [newTargetAccount, setNewTargetAccount] = useState<Partial<Bot['targetAccounts'][0]>>({
@@ -25,13 +28,37 @@ const Bots: React.FC = () => {
     tickerMappings: []
   })
 
+  const avatarOptions = [
+    // Trading & Finance
+    '📈', '📉', '💰', '💸', '💵', '💹', '📊', '💎',
+    // Bot & Tech
+    '🤖', '⚡', '⚙️', '🔧', '🛠️', '💻', '🔌', '💾',
+    // Game & Sports
+    '🎮', '🎲', '🎯', '🎪', '🎟️', '🎠', '🎨', '🎭',
+    // Nature & Weather
+    '🌱', '🌿', '🌳', '🌲', '🌴', '🌵', '🌺', '🌸',
+    // Space & Science
+    '🚀', '🌍', '🌎', '🌏', '⭐', '🌙', '☄️', '🌠',
+    // Animals & Pets
+    '🦊', '🦁', '🐯', '🐸', '🐼', '🐨', '🦒', '🦊',
+    // Food & Drink
+    '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓',
+    // Symbols & Objects
+    '🎯', '🎪', '🎟️', '🎠', '🎨', '🎭', '🎪', '🎟️'
+  ]
+
   useEffect(() => {
     if (!bot) {
       navigate('/')
-    } else if (!isEditingName) {
-      setEditedName(bot.name)
+    } else {
+      if (!isEditingName) {
+        setEditedName(bot.name)
+      }
+      if (!isEditingAvatar) {
+        setSelectedAvatar(bot.avatar || '')
+      }
     }
-  }, [bot, navigate, isEditingName])
+  }, [bot, navigate, isEditingName, isEditingAvatar])
 
   // Listen for state updates from main process
   useEffect(() => {
@@ -250,6 +277,11 @@ const Bots: React.FC = () => {
     return 'flex flex-1 p-6 gap-6 overflow-auto min-h-0'
   }
 
+  const handleAvatarChange = (emoji: string): void => {
+    updateBot(bot.id, { avatar: emoji })
+    addLog(`Bot avatar updated to ${emoji}`)
+  }
+
   return (
     <div className="flex flex-col h-screen relative">
       <div className="mx-6 mt-6 z-20">
@@ -299,6 +331,36 @@ const Bots: React.FC = () => {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
+                  <div className="dropdown dropdown-right">
+                    <div tabIndex={0} role="button" className="btn btn-ghost btn-circle relative">
+                      {bot.avatar ? (
+                        <span className="text-2xl">{bot.avatar}</span>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      )}
+                      {bot.isRunning && (
+                        <span className="absolute bottom-0 right-0 h-4 w-4 bg-success rounded-full border-2 border-base-100 animate-pulse"></span>
+                      )}
+                    </div>
+                    <ul tabIndex={0} className="dropdown-content absolute z-[99999] menu p-4 shadow-lg bg-base-200 rounded-box w-[40rem] max-h-[40rem] overflow-y-auto">
+                      <div className="grid grid-cols-8 gap-2">
+                        {avatarOptions.map((emoji) => (
+                          <li key={emoji}>
+                            <button
+                              className={`btn btn-ghost btn-sm text-2xl p-0 h-12 ${
+                                bot.avatar === emoji ? 'bg-primary text-primary-content' : ''
+                              }`}
+                              onClick={() => handleAvatarChange(emoji)}
+                            >
+                              {emoji}
+                            </button>
+                          </li>
+                        ))}
+                      </div>
+                    </ul>
+                  </div>
                   <h1 className="text-3xl font-bold">{bot.name}</h1>
                   <button
                     className="btn btn-circle btn-sm btn-ghost"

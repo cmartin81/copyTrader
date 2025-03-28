@@ -17,6 +17,7 @@ export interface Bot {
   isRunning: boolean
   isActive: boolean
   pnl: number
+  avatar?: string
   targetAccounts: {
     id: string
     name: string

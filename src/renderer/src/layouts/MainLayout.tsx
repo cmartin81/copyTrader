@@ -69,7 +69,7 @@ const MainLayout = (): JSX.Element => {
         <div>
           <div className="p-4 mb-8">
             <div className="flex items-center">
-              <div className="w-10 h-10 flex items-center justify-center shadow-lg shadow-primary/20">
+              <div className="w-10 h-10 flex items-center justify-center">
                 <img 
                   src={copyTradeLogo} 
                   alt="CopyTrader Logo" 
@@ -127,30 +127,39 @@ const MainLayout = (): JSX.Element => {
                         </svg>
                       </button>
                     </div>
-                    <ul className="space-y-0.5 pl-4">
+                    <div className="space-y-1">
                       {bots.map((bot) => (
-                        <li key={bot.id}>
-                          <NavLink
-                            to={`/bots/${bot.id}`}
-                            className={({ isActive }) =>
-                              `flex items-center px-4 py-2 rounded-lg transition-all duration-200 ${
-                                isActive
-                                  ? 'bg-primary text-primary-content'
-                                  : 'text-base-content/70 hover:bg-base-content/5 hover:text-base-content'
-                              }`
-                            }
-                          >
-                            <div className="flex items-center flex-1 min-w-0">
-                              <div className="w-6 h-6 rounded-full bg-base-content/10 flex items-center justify-center mr-2">
-                                <span className="text-xs font-medium">{bot.name.substring(0, 2).toUpperCase()}</span>
+                        <NavLink
+                          key={bot.id}
+                          to={`/bots/${bot.id}`}
+                          className={({ isActive }) =>
+                            `flex items-center px-4 py-2 rounded-xl transition-all duration-200 group relative ${
+                              isActive
+                                ? 'bg-primary text-primary-content'
+                                : 'text-base-content/70 hover:bg-base-content/5 hover:text-base-content'
+                            }`
+                          }
+                        >
+                          {({ isActive }) => (
+                            <>
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center`}>
+                                {bot.avatar ? (
+                                  <span className="text-xl">{bot.avatar}</span>
+                                ) : (
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                  </svg>
+                                )}
                               </div>
-                              <span className="font-medium text-sm truncate">{bot.name}</span>
-                            </div>
-                            <div className={`ml-2 w-2 h-2 mr-1 rounded-full ${bot.isRunning ? 'bg-success' : 'bg-base-content/30'}`} />
-                          </NavLink>
-                        </li>
+                              <span className="font-medium tracking-wide text-sm pl-2">{bot.name}</span>
+                              {bot.isRunning && (
+                                <span className="ml-auto h-3 w-3 bg-success rounded-full border-2 border-base-100 animate-pulse"></span>
+                              )}
+                            </>
+                          )}
+                        </NavLink>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 )}
               </li>
@@ -250,22 +259,24 @@ const MainLayout = (): JSX.Element => {
       <dialog className={`modal ${isAddBotModalOpen ? 'modal-open' : ''}`}>
         <div className="modal-box">
           <h3 className="font-bold text-lg mb-4">Add New Bot</h3>
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Bot Name</span>
-            </label>
-            <input
-              type="text"
-              placeholder="Enter bot name"
-              className="input input-bordered"
-              value={newBotName}
-              onChange={(e) => setNewBotName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleAddBot()
-                }
-              }}
-            />
+          <div className="space-y-4">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Bot Name</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Enter bot name"
+                className="input input-bordered"
+                value={newBotName}
+                onChange={(e) => setNewBotName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAddBot()
+                  }
+                }}
+              />
+            </div>
           </div>
           <div className="modal-action">
             <button className="btn" onClick={() => setIsAddBotModalOpen(false)}>Cancel</button>
