@@ -5,9 +5,11 @@ import { useBotStore } from '../store/botStore'
 
 const Settings: React.FC = () => {
   const { theme, setTheme } = useSettingsStore()
+  const { addAlert } = useSessionStore()
   const { bots, deleteBot } = useBotStore()
   const [ngrokAuthToken, setNgrokAuthToken] = useState('')
   const [ngrokUrl, setNgrokUrl] = useState('')
+  const [showResetConfirmation, setShowResetConfirmation] = useState(false)
 
   const themes: { value: Theme; label: string }[] = [
     { value: 'light', label: 'Light'},
@@ -74,6 +76,7 @@ const Settings: React.FC = () => {
     } catch (error) {
       addAlert('error', 'Error resetting settings')
     }
+    setShowResetConfirmation(false)
   }
 
 
@@ -164,11 +167,42 @@ const Settings: React.FC = () => {
           <p className="opacity-70 mb-4">Destructive actions that cannot be reversed</p>
           
           <div className="flex flex-col sm:flex-row gap-4">
-            <button className="btn btn-outline btn-warning" onClick={handleResetSettings}>Reset All Settings</button>
-            <button className="btn btn-outline btn-error">Delete Account</button>
+            <button 
+              className="btn btn-outline btn-warning" 
+              onClick={() => setShowResetConfirmation(true)}
+            >
+              Reset All Settings
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Reset Settings Confirmation Modal */}
+      <dialog className={`modal ${showResetConfirmation ? 'modal-open' : ''}`}>
+        <div className="modal-box">
+          <h3 className="font-bold text-lg mb-4">Reset All Settings</h3>
+          <p className="py-4">Are you sure you want to reset all settings? This action cannot be undone and will:</p>
+          <ul className="list-disc list-inside mb-4">
+            <li>Close all running bots</li>
+            <li>Delete all bot configurations</li>
+            <li>Reset all application settings</li>
+          </ul>
+          <div className="modal-action">
+            <button 
+              className="btn btn-ghost" 
+              onClick={() => setShowResetConfirmation(false)}
+            >
+              Cancel
+            </button>
+            <button 
+              className="btn btn-warning" 
+              onClick={handleResetSettings}
+            >
+              Yes, Reset Everything
+            </button>
+          </div>
+        </div>
+      </dialog>
     </div>
   )
 }
