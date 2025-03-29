@@ -5,7 +5,6 @@ import { useBotStore } from '../store/botStore'
 
 const Settings: React.FC = () => {
   const { theme, setTheme } = useSettingsStore()
-  const { addAlert } = useSessionStore()
   const { bots, deleteBot } = useBotStore()
   const [ngrokAuthToken, setNgrokAuthToken] = useState('')
   const [ngrokUrl, setNgrokUrl] = useState('')
@@ -77,18 +76,6 @@ const Settings: React.FC = () => {
     }
   }
 
-  const testAlerts = (): void => {
-    addAlert('success', 'This is a success alert!')
-    setTimeout(() => {
-      addAlert('error', 'This is an error alert!')
-    }, 3500)
-    setTimeout(() => {
-      addAlert('warning', 'This is a warning alert!')
-    }, 7000)
-    setTimeout(() => {
-      addAlert('info', 'This is an info alert!')
-    }, 10500)
-  }
 
   return (
     <div className="p-6">
@@ -179,31 +166,6 @@ const Settings: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-4">
             <button className="btn btn-outline btn-warning" onClick={handleResetSettings}>Reset All Settings</button>
             <button className="btn btn-outline btn-error">Delete Account</button>
-          </div>
-        </div>
-      </div>
-
-      <div className="card bg-base-100 shadow-xl mt-8">
-        <div className="card-body">
-          <h2 className="card-title mb-4">Test Alerts</h2>
-          <p className="opacity-70 mb-4">Test different types of alerts</p>
-          
-          <div className="flex flex-wrap gap-4">
-            <button className="btn btn-success" onClick={() => addAlert('success', 'Success alert!')}>
-              Test Success
-            </button>
-            <button className="btn btn-error" onClick={() => addAlert('error', 'Error alert!')}>
-              Test Error
-            </button>
-            <button className="btn btn-warning" onClick={() => addAlert('warning', 'Warning alert!')}>
-              Test Warning
-            </button>
-            <button className="btn btn-info" onClick={() => addAlert('info', 'Info alert!')}>
-              Test Info
-            </button>
-            <button className="btn btn-primary" onClick={testAlerts}>
-              Test All Alerts
-            </button>
           </div>
         </div>
       </div>
