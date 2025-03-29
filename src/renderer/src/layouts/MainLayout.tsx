@@ -72,12 +72,12 @@ const MainLayout = (): JSX.Element => {
               <div className="w-10 h-10 flex items-center justify-center">
                 <img 
                   src={copyTradeLogo} 
-                  alt="CopyTrader Logo" 
+                  alt="CopyTrade Logo" 
                   className="w-full h-full object-contain rounded-xl"
                 />
               </div>
               <div className="flex flex-col pl-3">
-                <span className="font-semibold text-lg tracking-wide">CopyTrader</span>
+                <span className="font-semibold text-lg tracking-wide">CopyTrade</span>
                 <span className="text-xs font-medium tracking-wider">TradersVantage</span>
               </div>
             </div>

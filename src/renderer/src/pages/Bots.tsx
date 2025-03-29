@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useBotStore, Bot, MasterAccount } from '../store/botStore'
+import { useSessionStore } from '../store/sessionStore'
 import { createPortal } from 'react-dom'
 
 type LogSize = 'normal' | 'half' | 'full'
@@ -9,6 +10,7 @@ const Bots: React.FC = () => {
   const { botId } = useParams<{ botId: string }>()
   const navigate = useNavigate()
   const { bots, updateBot, toggleBot, deleteBot, updateBotPnl } = useBotStore()
+  const { addAlert } = useSessionStore()
   const bot = bots.find(b => b.id === botId)
 
   const [logs, setLogs] = useState<string[]>([])
@@ -99,6 +101,13 @@ const Bots: React.FC = () => {
   const toggleBotRunning = async (): Promise<void> => {
     try {
       if (!bot.isRunning) {
+        // Check if any other bots are running
+        const runningBots = bots.filter(b => b.isRunning && b.id !== bot.id)
+        if (runningBots.length > 0) {
+          addAlert('warning', 'Only one bot can run at a time. Please stop the running bot first.')
+          return
+        }
+
         // Start the bot
         const response = await window.electron.ipcRenderer.invoke('launch-puppeteer', bot.id, bot.name)
         if (response.success) {
@@ -108,6 +117,7 @@ const Bots: React.FC = () => {
         } else {
           console.error('Failed to start bot:', response.error)
           addLog(`Failed to start bot: ${response.error}`)
+          addAlert('error', `Failed to start bot: ${response.error}`)
         }
       } else {
         // Stop the bot
@@ -115,15 +125,22 @@ const Bots: React.FC = () => {
         if (response.success) {
           toggleBot(bot.id)
           updateBot(bot.id, { isActive: false })
-          addLog('Bot stopped successfully')
+          addAlert('success', 'Bot stopped successfully')
+        } else if (response.error === 'Window not found') {
+          // If window is already closed, just update the state
+          toggleBot(bot.id)
+          updateBot(bot.id, { isActive: false })
+          addAlert('info', 'Bot window was already closed')
         } else {
           console.error('Failed to stop bot:', response.error)
           addLog(`Failed to stop bot: ${response.error}`)
+          addAlert('error', `Failed to stop bot: ${response.error}`)
         }
       }
     } catch (error) {
       console.error('Error toggling bot:', error)
       addLog(`Error toggling bot: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      addAlert('error', `Error toggling bot: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
