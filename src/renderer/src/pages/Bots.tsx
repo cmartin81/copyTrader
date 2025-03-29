@@ -340,9 +340,6 @@ const Bots: React.FC = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                       )}
-                      {bot.isRunning && (
-                        <span className="absolute bottom-0 right-0 h-4 w-4 bg-success rounded-full border-2 border-base-100 animate-pulse"></span>
-                      )}
                     </div>
                     <ul tabIndex={0} className="dropdown-content absolute z-[99999] menu p-4 shadow-lg bg-base-200 rounded-box w-[40rem] max-h-[40rem] overflow-y-auto">
                       <div className="grid grid-cols-8 gap-2">
