@@ -8,7 +8,7 @@ const Dashboard: React.FC = () => {
         <div className="hero-content text-center">
           <div>
             <div className="flex items-center justify-center gap-4 mb-4">
-              <h1 className="text-5xl font-bold">Welcome to CopyTrade</h1>
+              <h1 className="text-5xl font-bold">Welcome to CopyTrader</h1>
               <div className="badge badge-warning badge-lg">Beta</div>
             </div>
             <p className="py-6 max-w-2xl mx-auto text-lg opacity-80">
@@ -75,7 +75,7 @@ const Dashboard: React.FC = () => {
               </div>
               <h2 className="card-title">Support Pages</h2>
             </div>
-            <p className="opacity-70 mb-4">Access comprehensive documentation, guides, and FAQs to help you get the most out of CopyTrade.</p>
+            <p className="opacity-70 mb-4">Access comprehensive documentation, guides, and FAQs to help you get the most out of CopyTrader.</p>
             <div className="badge badge-primary">Coming Soon</div>
           </div>
         </div>

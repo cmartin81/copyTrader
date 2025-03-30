@@ -23,6 +23,8 @@ const Bots: React.FC = () => {
   const [selectedAvatar, setSelectedAvatar] = useState<string>('')
   const logContainerRef = React.useRef<HTMLDivElement>(null)
   const [showAddTarget, setShowAddTarget] = useState(false)
+  const [showTestMenu, setShowTestMenu] = useState<string | null>(null)
+  const [testSymbol, setTestSymbol] = useState('')
   const [newTargetAccount, setNewTargetAccount] = useState<Partial<Bot['targetAccounts'][0]>>({
     name: '',
     type: 'PropFirm',
@@ -309,6 +311,16 @@ const Bots: React.FC = () => {
     addLog(`Bot avatar updated to ${emoji}`)
   }
 
+  const handleTestOrder = (accountId: string, side: 'buy' | 'sell'): void => {
+    if (!testSymbol) {
+      addAlert('error', 'Please enter a symbol')
+      return
+    }
+    addLog(`Test ${side} order for ${testSymbol} on account ${accountId}`)
+    setShowTestMenu(null)
+    setTestSymbol('')
+  }
+
   return (
     <div className="flex flex-col h-screen relative">
       <div className="mx-6 mt-6 z-20">
@@ -586,19 +598,27 @@ const Bots: React.FC = () => {
                       <h3 className="font-medium">{account.name}</h3>
                       <p className="text-base-content/70 text-sm">{account.type} - {account.accountId}</p>
                     </div>
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => {
-                        updateBot(bot.id, {
-                          targetAccounts: bot.targetAccounts.filter(a => a.id !== account.id)
-                        })
-                        addLog(`Deleted account: ${account.name}`)
-                      }}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => setShowTestMenu(account.id)}
+                      >
+                        Test
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => {
+                          updateBot(bot.id, {
+                            targetAccounts: bot.targetAccounts.filter(a => a.id !== account.id)
+                          })
+                          addLog(`Deleted account: ${account.name}`)
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -773,6 +793,67 @@ const Bots: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Test Menu Modal */}
+      {showTestMenu && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-base-200 rounded-lg p-6 w-[600px]">
+            <h3 className="text-lg font-semibold mb-4">
+              Test Order - {bot.targetAccounts.find(a => a.id === showTestMenu)?.name}
+            </h3>
+            <div className="space-y-4">
+              <div className="text-sm text-base-content/70">
+                <p className="mb-2">This will place a real test order on the exchange. If the order is not placed successfully, there might be an issue with:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Account connection</li>
+                  <li>Symbol availability</li>
+                  <li>Exchange permissions</li>
+                  <li>System configuration</li>
+                </ul>
+              </div>
+              <div className="space-y-2">
+                <h4 className="font-medium">Symbol Mappings</h4>
+                {bot.targetAccounts.find(a => a.id === showTestMenu)?.tickerMappings.map((mapping, index) => (
+                  <div key={index} className="flex items-center justify-between bg-base-300 p-3 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{mapping.sourceTicker}</span>
+                      <span>→</span>
+                      <span className="font-medium">{mapping.targetTicker}</span>
+                      <span>×</span>
+                      <span className="font-medium">{mapping.multiplier}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        className="btn btn-error btn-sm"
+                        onClick={() => handleTestOrder(showTestMenu, 'sell')}
+                      >
+                        SELL
+                      </button>
+                      <button
+                        className="btn btn-success btn-sm"
+                        onClick={() => handleTestOrder(showTestMenu, 'buy')}
+                      >
+                        BUY
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end">
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setShowTestMenu(null)
+                    setTestSymbol('')
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
