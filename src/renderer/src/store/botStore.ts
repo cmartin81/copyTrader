@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { v4 as uuidv4 } from 'uuid'
 
 export interface MasterAccount {
   type: 'PropFirm' | 'Personal'
@@ -20,12 +21,12 @@ export interface Bot {
   avatar?: string
   targetAccounts: {
     id: string
-    name: string
-    type: 'PropFirm' | 'Personal'
-    accountId: string
-    tickerMappings: {
-      source: string
-      target: string
+    type: 'Topstepx' | 'Bulenox' | 'TheFuturesDesk' | 'TickTickTrader'
+    account: string
+    symbolMappings: {
+      sourceSymbol: string
+      targetSymbol: string
+      multiplier: number
       isEditing: boolean
     }[]
   }[]
@@ -45,30 +46,30 @@ export const useBotStore = create<BotStore>()(
   persist(
     (set) => ({
       bots: [],
-      addBot: (bot) => set((state) => ({
+      addBot: (bot): void => set((state) => ({
         bots: [
           ...state.bots,
           {
             ...bot,
-            id: Math.random().toString(36).substr(2, 9),
+            id: uuidv4(),
             isRunning: false,
             isActive: false,
             pnl: 0
           }
         ]
       })),
-      updateBot: (id, updates) => set((state) => ({
+      updateBot: (id, updates): void => set((state) => ({
         bots: state.bots.map((bot) => (bot.id === id ? { ...bot, ...updates } : bot))
       })),
-      deleteBot: (id) => set((state) => ({
+      deleteBot: (id): void => set((state) => ({
         bots: state.bots.filter((bot) => bot.id !== id)
       })),
-      toggleBot: (id) => set((state) => ({
+      toggleBot: (id): void => set((state) => ({
         bots: state.bots.map((bot) =>
           bot.id === id ? { ...bot, isRunning: !bot.isRunning } : bot
         )
       })),
-      updateBotPnl: (id, pnl) => set((state) => ({
+      updateBotPnl: (id, pnl): void => set((state) => ({
         bots: state.bots.map((bot) => (bot.id === id ? { ...bot, pnl } : bot))
       }))
     }),

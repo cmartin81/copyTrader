@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useBotStore, Bot, MasterAccount } from '../store/botStore'
 import { useSessionStore } from '../store/sessionStore'
 import { createPortal } from 'react-dom'
+import { v4 as uuidv4 } from 'uuid'
 
 type LogSize = 'normal' | 'half' | 'full'
 
@@ -19,17 +20,16 @@ const Bots: React.FC = () => {
   const [isReversed, setIsReversed] = useState(false)
   const [isEditingName, setIsEditingName] = useState(false)
   const [editedName, setEditedName] = useState('')
-  const [isEditingAvatar, setIsEditingAvatar] = useState(false)
+  const [isEditingAvatar] = useState(false)
   const [selectedAvatar, setSelectedAvatar] = useState<string>('')
   const logContainerRef = React.useRef<HTMLDivElement>(null)
   const [showAddTarget, setShowAddTarget] = useState(false)
   const [showTestMenu, setShowTestMenu] = useState<string | null>(null)
   const [testSymbol, setTestSymbol] = useState('')
   const [newTargetAccount, setNewTargetAccount] = useState<Partial<Bot['targetAccounts'][0]>>({
-    name: '',
-    type: 'PropFirm',
-    accountId: '',
-    tickerMappings: []
+    type: undefined,
+    account: '',
+    symbolMappings: []
   })
 
   const avatarOptions = [
@@ -121,7 +121,8 @@ const Bots: React.FC = () => {
         }
 
         // Start the bot
-        const response = await window.electron.ipcRenderer.invoke('launch-puppeteer', bot.id, bot.name)
+        alert(JSON.stringify(bot))
+        const response = await window.electron.ipcRenderer.invoke('launch-puppeteeraa', bot.id, bot.name)
         if (response.success) {
           toggleBot(bot.id)
           updateBot(bot.id, { isActive: true })
@@ -201,39 +202,37 @@ const Bots: React.FC = () => {
   }
 
   const handleAddTargetAccount = (): void => {
-    if (newTargetAccount.name && newTargetAccount.type && newTargetAccount.accountId) {
+    if (newTargetAccount.type && newTargetAccount.account) {
       updateBot(bot.id, {
         targetAccounts: [
           ...bot.targetAccounts,
           {
-            id: Date.now().toString(),
-            name: newTargetAccount.name,
+            id: uuidv4(),
             type: newTargetAccount.type,
-            accountId: newTargetAccount.accountId,
-            tickerMappings: []
+            account: newTargetAccount.account,
+            symbolMappings: []
           }
         ]
       })
       setNewTargetAccount({
-        name: '',
-        type: 'PropFirm',
-        accountId: '',
-        tickerMappings: []
+        type: undefined,
+        account: '',
+        symbolMappings: []
       })
       setShowAddTarget(false)
-      addLog(`Added new target account: ${newTargetAccount.name}`)
+      addLog(`Added new target account: ${newTargetAccount.type}`)
     }
   }
 
-  const handleAddTickerMapping = (targetId: string): void => {
+  const handleAddSymbolMapping = (targetId: string): void => {
     updateBot(bot.id, {
       targetAccounts: bot.targetAccounts.map(account => {
         if (account.id === targetId) {
           return {
             ...account,
-            tickerMappings: [...account.tickerMappings, { 
-              sourceTicker: '', 
-              targetTicker: '', 
+            symbolMappings: [...account.symbolMappings, { 
+              sourceSymbol: '', 
+              targetSymbol: '', 
               multiplier: 1,
               isEditing: true 
             }]
@@ -248,11 +247,11 @@ const Bots: React.FC = () => {
     updateBot(bot.id, {
       targetAccounts: bot.targetAccounts.map(account => {
         if (account.id === targetId) {
-          const newMappings = [...account.tickerMappings]
+          const newMappings = [...account.symbolMappings]
           const mapping = newMappings[index]
           newMappings[index] = { ...mapping, isEditing: false }
-          addLog(`Saved mapping for ${account.name}: ${mapping.sourceTicker} → ${mapping.targetTicker} (x${mapping.multiplier})`)
-          return { ...account, tickerMappings: newMappings }
+          addLog(`Saved mapping for ${account.type}: ${mapping.sourceSymbol} → ${mapping.targetSymbol} (x${mapping.multiplier})`)
+          return { ...account, symbolMappings: newMappings }
         }
         return account
       })
@@ -263,22 +262,22 @@ const Bots: React.FC = () => {
     updateBot(bot.id, {
       targetAccounts: bot.targetAccounts.map(account => {
         if (account.id === targetId) {
-          const newMappings = [...account.tickerMappings]
+          const newMappings = [...account.symbolMappings]
           newMappings[index] = { ...newMappings[index], isEditing: true }
-          return { ...account, tickerMappings: newMappings }
+          return { ...account, symbolMappings: newMappings }
         }
         return account
       })
     })
   }
 
-  const handleDeleteTickerMapping = (targetId: string, index: number): void => {
+  const handleDeleteSymbolMapping = (targetId: string, index: number): void => {
     updateBot(bot.id, {
       targetAccounts: bot.targetAccounts.map(account => {
         if (account.id === targetId) {
-          const newMappings = account.tickerMappings.filter((_, i) => i !== index)
-          addLog(`Deleted mapping from ${account.name}`)
-          return { ...account, tickerMappings: newMappings }
+          const newMappings = account.symbolMappings.filter((_, i) => i !== index)
+          addLog(`Deleted mapping from ${account.type}`)
+          return { ...account, symbolMappings: newMappings }
         }
         return account
       })
@@ -319,6 +318,23 @@ const Bots: React.FC = () => {
     addLog(`Test ${side} order for ${testSymbol} on account ${accountId}`)
     setShowTestMenu(null)
     setTestSymbol('')
+  }
+
+  const handleSyncAccounts = async (): Promise<void> => {
+    try {
+      addLog('Syncing Topstepx accounts...')
+      // Add sample accounts to the dropdown
+      const sampleAccounts = ['Account 1', 'Account 2']
+      setNewTargetAccount(prev => ({
+        ...prev,
+        account: ''
+      }))
+      addLog('Account sync completed')
+    } catch (error) {
+      console.error('Error syncing accounts:', error)
+      addLog(`Error syncing accounts: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      addAlert('error', `Error syncing accounts: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   return (
@@ -543,35 +559,55 @@ const Bots: React.FC = () => {
               <div className="bg-base-200 rounded-lg p-4 mb-4">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm text-base-content/70 mb-2">Account Name</label>
-                    <input
-                      type="text"
-                      className="input input-bordered w-full"
-                      value={newTargetAccount.name}
-                      onChange={(e) => setNewTargetAccount({ ...newTargetAccount, name: e.target.value })}
-                    />
-                  </div>
-                  <div>
                     <label className="block text-sm text-base-content/70 mb-2">Account Type</label>
                     <select
                       className="select select-bordered w-full"
-                      value={newTargetAccount.type}
+                      value={newTargetAccount.type || ''}
                       onChange={(e) => setNewTargetAccount({ ...newTargetAccount, type: e.target.value as Bot['targetAccounts'][0]['type'] })}
                     >
-                      <option value="PropFirm">Prop Firm</option>
-                      <option value="TopStepX">TopStepX</option>
-                      <option value="Tradovate">Tradovate</option>
+                      <option value="">Select account type</option>
+                      <option value="Topstepx">Topstepx</option>
+                      <option value="Bulenox">Bulenox</option>
+                      <option value="TheFuturesDesk">The Futures Desk</option>
+                      <option value="TickTickTrader">TickTickTrader</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm text-base-content/70 mb-2">Account ID</label>
-                    <input
-                      type="text"
-                      className="input input-bordered w-full"
-                      value={newTargetAccount.accountId}
-                      onChange={(e) => setNewTargetAccount({ ...newTargetAccount, accountId: e.target.value })}
-                    />
-                  </div>
+                  {newTargetAccount.type === 'Topstepx' && (
+                    <div className="flex gap-2 items-end">
+                      <div className="flex-1">
+                        <label className="block text-sm text-base-content/70 mb-2">Account</label>
+                        <select
+                          className="select select-bordered w-full"
+                          value={newTargetAccount.account}
+                          onChange={(e) => setNewTargetAccount({ ...newTargetAccount, account: e.target.value })}
+                        >
+                          <option value="">Select an account</option>
+                          <option value="Account 1">Account 1</option>
+                          <option value="Account 2">Account 2</option>
+                        </select>
+                      </div>
+                      <button
+                        className="btn btn-ghost btn-square"
+                        title="Sync accounts"
+                        onClick={handleSyncAccounts}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                  {newTargetAccount.type && newTargetAccount.type !== 'Topstepx' && (
+                    <div>
+                      <label className="block text-sm text-base-content/70 mb-2">Account ID</label>
+                      <input
+                        type="text"
+                        className="input input-bordered w-full"
+                        value={newTargetAccount.account}
+                        onChange={(e) => setNewTargetAccount({ ...newTargetAccount, account: e.target.value })}
+                      />
+                    </div>
+                  )}
                   <div className="flex justify-end space-x-2">
                     <button
                       className="btn btn-ghost"
@@ -595,8 +631,7 @@ const Bots: React.FC = () => {
                 <div key={account.id} className="bg-base-200 rounded-lg p-4">
                   <div className="flex justify-between items-center mb-4">
                     <div>
-                      <h3 className="font-medium">{account.name}</h3>
-                      <p className="text-base-content/70 text-sm">{account.type} - {account.accountId}</p>
+                      <h3 className="font-medium">{account.type} - {account.account}</h3>
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -611,7 +646,7 @@ const Bots: React.FC = () => {
                           updateBot(bot.id, {
                             targetAccounts: bot.targetAccounts.filter(a => a.id !== account.id)
                           })
-                          addLog(`Deleted account: ${account.name}`)
+                          addLog(`Deleted account: ${account.type}`)
                         }}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -622,20 +657,20 @@ const Bots: React.FC = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <h4 className="font-medium">Ticker Mappings</h4>
-                    {account.tickerMappings.map((mapping, index) => (
+                    
+                    {account.symbolMappings.map((mapping, index) => (
                       <div key={index} className="flex items-center space-x-2">
                         <input
                           type="text"
                           className="input input-bordered input-sm w-28"
-                          value={mapping.sourceTicker}
+                          value={mapping.sourceSymbol}
                           disabled={!mapping.isEditing}
                           onChange={(e) => {
-                            const newMappings = [...account.tickerMappings]
-                            newMappings[index] = { ...mapping, sourceTicker: e.target.value }
+                            const newMappings = [...account.symbolMappings]
+                            newMappings[index] = { ...mapping, sourceSymbol: e.target.value }
                             updateBot(bot.id, {
                               targetAccounts: bot.targetAccounts.map(a => 
-                                a.id === account.id ? { ...a, tickerMappings: newMappings } : a
+                                a.id === account.id ? { ...a, symbolMappings: newMappings } : a
                               )
                             })
                           }}
@@ -645,14 +680,14 @@ const Bots: React.FC = () => {
                         <input
                           type="text"
                           className="input input-bordered input-sm w-28"
-                          value={mapping.targetTicker}
+                          value={mapping.targetSymbol}
                           disabled={!mapping.isEditing}
                           onChange={(e) => {
-                            const newMappings = [...account.tickerMappings]
-                            newMappings[index] = { ...mapping, targetTicker: e.target.value }
+                            const newMappings = [...account.symbolMappings]
+                            newMappings[index] = { ...mapping, targetSymbol: e.target.value }
                             updateBot(bot.id, {
                               targetAccounts: bot.targetAccounts.map(a => 
-                                a.id === account.id ? { ...a, tickerMappings: newMappings } : a
+                                a.id === account.id ? { ...a, symbolMappings: newMappings } : a
                               )
                             })
                           }}
@@ -665,11 +700,11 @@ const Bots: React.FC = () => {
                           value={mapping.multiplier}
                           disabled={!mapping.isEditing}
                           onChange={(e) => {
-                            const newMappings = [...account.tickerMappings]
+                            const newMappings = [...account.symbolMappings]
                             newMappings[index] = { ...mapping, multiplier: parseFloat(e.target.value) || 1 }
                             updateBot(bot.id, {
                               targetAccounts: bot.targetAccounts.map(a => 
-                                a.id === account.id ? { ...a, tickerMappings: newMappings } : a
+                                a.id === account.id ? { ...a, symbolMappings: newMappings } : a
                               )
                             })
                           }}
@@ -697,7 +732,7 @@ const Bots: React.FC = () => {
                           )}
                           <button
                             className="btn btn-error btn-sm btn-square"
-                            onClick={() => handleDeleteTickerMapping(account.id, index)}
+                            onClick={() => handleDeleteSymbolMapping(account.id, index)}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -708,7 +743,7 @@ const Bots: React.FC = () => {
                     ))}
                     <button
                       className="btn btn-ghost btn-sm"
-                      onClick={() => handleAddTickerMapping(account.id)}
+                      onClick={() => handleAddSymbolMapping(account.id)}
                     >
                       + Add Mapping
                     </button>
@@ -799,7 +834,7 @@ const Bots: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-base-200 rounded-lg p-6 w-[600px]">
             <h3 className="text-lg font-semibold mb-4">
-              Test Order - {bot.targetAccounts.find(a => a.id === showTestMenu)?.name}
+              Test Order - {bot.targetAccounts.find(a => a.id === showTestMenu)?.type}
             </h3>
             <div className="space-y-4">
               <div className="text-sm text-base-content/70">
@@ -813,12 +848,12 @@ const Bots: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <h4 className="font-medium">Symbol Mappings</h4>
-                {bot.targetAccounts.find(a => a.id === showTestMenu)?.tickerMappings.map((mapping, index) => (
+                {bot.targetAccounts.find(a => a.id === showTestMenu)?.symbolMappings.map((mapping, index) => (
                   <div key={index} className="flex items-center justify-between bg-base-300 p-3 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{mapping.sourceTicker}</span>
+                      <span className="font-medium">{mapping.sourceSymbol}</span>
                       <span>→</span>
-                      <span className="font-medium">{mapping.targetTicker}</span>
+                      <span className="font-medium">{mapping.targetSymbol}</span>
                       <span>×</span>
                       <span className="font-medium">{mapping.multiplier}</span>
                     </div>
