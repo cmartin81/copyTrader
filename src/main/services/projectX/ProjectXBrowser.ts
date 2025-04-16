@@ -62,6 +62,7 @@ export class ProjectXBrowser extends AbstractTargetAccount {
 
   async openBrowser():Promise<void> {
     await this.puppeteerBrowser.loadURL(this.exchangeUrl)
+    console.log('openBrowser')
     this.page = await pie.getPage(this.browser, this.puppeteerBrowser)
     const originalUserAgent = await this.page.browser().userAgent();
     let customUserAgent = originalUserAgent.replace(/Electron\/[\d.]+ /, '');
@@ -84,7 +85,6 @@ export class ProjectXBrowser extends AbstractTargetAccount {
     username: string | null = null,
     password: string | null = null,
   ): Promise<ProjectXBrowser> {
-
     const browser = await pie.connect(app, puppeteer)
     return new ProjectXBrowser(browser, propFirm, username, password)
   }

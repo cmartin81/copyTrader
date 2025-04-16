@@ -37,7 +37,7 @@ const Bots: React.FC = () => {
     '📈', '📉', '💰', '💸', '💵', '💹', '📊', '💎', '💱', '💲', '💳', '💴', '💶', '💷',
     // Bot & Tech
     '🤖', '⚡', '⚙️', '🔧', '🛠️', '💻', '🔌', '💾', '📱', '🔋', '💡', '🔬', '🔭', '📡', '🛰️', '🔮',
-    // Game & Sports  
+    // Game & Sports
     '🎮', '🎲', '🎯', '🎪', '🎟️', '🎠', '🎨', '🎭', '🎫', '🎬', '🎳', '🎸', '🎺', '🎻',
     // Nature & Weather
     '🌱', '🌿', '🌳', '🌲', '🌴', '🌵', '🌺', '🌸', '🌼', '🌻', '🌹', '🌷', '🍀', '🌾', '🌽', '🍄',
@@ -122,7 +122,7 @@ const Bots: React.FC = () => {
 
         // Start the bot
         alert(JSON.stringify(bot))
-        const response = await window.electron.ipcRenderer.invoke('launch-puppeteeraa', bot.id, bot.name)
+        const response = await window.electron.ipcRenderer.invoke('launch-puppeteer', bot.id, bot.name)
         if (response.success) {
           toggleBot(bot.id)
           updateBot(bot.id, { isActive: true })
@@ -230,11 +230,11 @@ const Bots: React.FC = () => {
         if (account.id === targetId) {
           return {
             ...account,
-            symbolMappings: [...account.symbolMappings, { 
-              sourceSymbol: '', 
-              targetSymbol: '', 
+            symbolMappings: [...account.symbolMappings, {
+              sourceSymbol: '',
+              targetSymbol: '',
               multiplier: 1,
-              isEditing: true 
+              isEditing: true
             }]
           }
         }
@@ -437,11 +437,11 @@ const Bots: React.FC = () => {
                 </svg>
                 Delete Bot
               </button>
-              <button 
+              <button
                 onClick={toggleBotRunning}
                 className={`btn btn-lg ${
-                  bot.isRunning 
-                    ? 'btn-error hover:btn-error' 
+                  bot.isRunning
+                    ? 'btn-error hover:btn-error'
                     : 'btn-success hover:btn-success'
                 } min-w-[150px]`}
               >
@@ -657,7 +657,7 @@ const Bots: React.FC = () => {
                   </div>
 
                   <div className="space-y-2">
-                    
+
                     {account.symbolMappings.map((mapping, index) => (
                       <div key={index} className="flex items-center space-x-2">
                         <input
@@ -669,7 +669,7 @@ const Bots: React.FC = () => {
                             const newMappings = [...account.symbolMappings]
                             newMappings[index] = { ...mapping, sourceSymbol: e.target.value }
                             updateBot(bot.id, {
-                              targetAccounts: bot.targetAccounts.map(a => 
+                              targetAccounts: bot.targetAccounts.map(a =>
                                 a.id === account.id ? { ...a, symbolMappings: newMappings } : a
                               )
                             })
@@ -686,7 +686,7 @@ const Bots: React.FC = () => {
                             const newMappings = [...account.symbolMappings]
                             newMappings[index] = { ...mapping, targetSymbol: e.target.value }
                             updateBot(bot.id, {
-                              targetAccounts: bot.targetAccounts.map(a => 
+                              targetAccounts: bot.targetAccounts.map(a =>
                                 a.id === account.id ? { ...a, symbolMappings: newMappings } : a
                               )
                             })
@@ -703,7 +703,7 @@ const Bots: React.FC = () => {
                             const newMappings = [...account.symbolMappings]
                             newMappings[index] = { ...mapping, multiplier: parseFloat(e.target.value) || 1 }
                             updateBot(bot.id, {
-                              targetAccounts: bot.targetAccounts.map(a => 
+                              targetAccounts: bot.targetAccounts.map(a =>
                                 a.id === account.id ? { ...a, symbolMappings: newMappings } : a
                               )
                             })
@@ -818,7 +818,7 @@ const Bots: React.FC = () => {
               </button>
             </div>
           </div>
-          <div 
+          <div
             ref={logContainerRef}
             className={`bg-base-200 rounded-lg p-4 ${logSize === 'normal' ? 'h-32' : 'h-[calc(100%-4rem)]'} overflow-auto font-mono text-sm`}
           >
@@ -893,4 +893,4 @@ const Bots: React.FC = () => {
   )
 }
 
-export default Bots 
+export default Bots

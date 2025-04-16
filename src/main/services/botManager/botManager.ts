@@ -1,6 +1,11 @@
+import { getBots } from '../../store'
+
 class BotManager {
-  constructor(settings: any) {
-    this.settings = settings
+  settings: any
+  constructor(botId: string) {
+    console.log('BotManager created for bot: ' + botId)
+    console.log(getBots())
+    //this.settings = settings
   }
 
   async start() {

@@ -7,6 +7,7 @@ import { SessionState } from '../shared/types'
 import pie from 'puppeteer-in-electron'
 import puppeteer from 'puppeteer-core'
 import type { Browser } from 'puppeteer-core'
+import BotManager from './services/botManager/botManager'
 
 // Session state (non-persistent, reset on app restart)
 const sessionState: SessionState = {
@@ -57,7 +58,7 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
-  
+
   // Set up IPC handlers for state management
   ipcMain.handle('get-initial-state', () => {
     return {
@@ -66,7 +67,7 @@ function createWindow(): void {
       bots: getBots()
     }
   })
-  
+
   // Add handler for resetting all settings
   ipcMain.handle('reset-all-settings', async () => {
     try {
@@ -85,26 +86,26 @@ function createWindow(): void {
       return { success: true }
     } catch (error) {
       console.error('Error resetting settings:', error)
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'An unknown error occurred' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'An unknown error occurred'
       }
     }
   })
-  
+
   // Session counter handlers
   ipcMain.on('increment-session-counter', () => {
     sessionState.sessionCounter++
     console.log(`[Main] Session counter incremented to: ${sessionState.sessionCounter}`)
     broadcastState()
   })
-  
+
   ipcMain.on('decrement-session-counter', () => {
     sessionState.sessionCounter--
     console.log(`[Main] Session counter decremented to: ${sessionState.sessionCounter}`)
     broadcastState()
   })
-  
+
   // App counter handlers
   ipcMain.on('increment-app-counter', () => {
     const appState = getAppState()
@@ -112,25 +113,25 @@ function createWindow(): void {
     updateAppCounter(newValue)
     broadcastState()
   })
-  
+
   ipcMain.on('decrement-app-counter', () => {
     const appState = getAppState()
     const newValue = appState.appCounter - 1
     updateAppCounter(newValue)
     broadcastState()
   })
-  
+
   // Set up interval to update counters every 10 seconds
   setInterval(() => {
     // Update session counter
     sessionState.sessionCounter += 10
     console.log(`[Main] Auto-updated session counter to: ${sessionState.sessionCounter}`)
-    
+
     // Update app counter
     const appState = getAppState()
     const newValue = appState.appCounter + 10
     updateAppCounter(newValue)
-    
+
     // Update PnL for all active bots
     const bots = getBots()
     bots.forEach(bot => {
@@ -138,14 +139,20 @@ function createWindow(): void {
         updateBotPnl(bot.id, bot.pnl + 1)
       }
     })
-    
+
     // Broadcast the updates to the renderer
     broadcastState()
   }, 10000)
 }
 
-// Handle Puppeteer launch request
 ipcMain.handle('launch-puppeteer', async (_, botId: string, botName: string) => {
+  console.log('launch-puppeteeraaa')
+  const botManager = new BotManager(botId)
+  botManager.start()
+})
+
+// Handle Puppeteer launch request
+ipcMain.handle('launch-puppeteeraaa', async (_, botId: string, botName: string) => {
   try {
     // Create a new browser window
     const browserWindow = new BrowserWindow({
@@ -207,13 +214,13 @@ ipcMain.handle('launch-puppeteer', async (_, botId: string, botName: string) => 
         window.webContents.send('bot-window-closed', botId);
       });
     });
-    
+
     return { success: true };
   } catch (error) {
     console.error('Puppeteer error:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'An unknown error occurred' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
     };
   }
 });
@@ -232,9 +239,9 @@ ipcMain.handle('close-bot-window', async (_, botId: string) => {
     return { success: false, error: 'Window not found' };
   } catch (error) {
     console.error('Error closing window:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'An unknown error occurred' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
     };
   }
 });
@@ -253,9 +260,9 @@ ipcMain.handle('execute-command', async (_, botId: string, command: string) => {
     return { success: true };
   } catch (error) {
     console.error('Error executing command:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'An unknown error occurred' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
     };
   }
 });
