@@ -83,10 +83,17 @@ const Bots: React.FC = () => {
       }
     }
 
-    window.api.onStateUpdate(handleStateUpdate)
+    window.store.onAppStateUpdate((state) => {
+      if (state.bots) {
+        const updatedBot = state.bots.find(b => b.id === botId)
+        if (updatedBot) {
+          updateBotPnl(botId!, updatedBot.pnl)
+        }
+      }
+    })
 
     return () => {
-      window.electron.ipcRenderer.removeAllListeners('state-updated')
+      window.electron.ipcRenderer.removeAllListeners('app-state-updated')
     }
   }, [botId, updateBotPnl])
 
@@ -164,11 +171,13 @@ const Bots: React.FC = () => {
 
   const handleMasterAccountTypeChange = (type: MasterAccount['type']): void => {
     const newMasterAccount: MasterAccount = {
-      id: Date.now().toString(),
-      name: '',
       type,
-      connectionType: 'credentials',
-      credentials: {}
+      connectionType: 'MT4', // Default to MT4
+      credentials: {
+        username: '',
+        password: '',
+        server: ''
+      }
     }
     updateBot(bot.id, {
       masterAccount: newMasterAccount
@@ -337,6 +346,47 @@ const Bots: React.FC = () => {
     }
   }
 
+  const renderCredentialsForm = (): JSX.Element => {
+    switch (bot.masterAccount.connectionType) {
+      case 'MT4':
+      case 'MT5':
+      case 'cTrader':
+        return (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Username</label>
+              <input
+                type="text"
+                value={bot.masterAccount.credentials.username}
+                onChange={(e) => handleMasterAccountCredentialsChange('username', e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Password</label>
+              <input
+                type="password"
+                value={bot.masterAccount.credentials.password}
+                onChange={(e) => handleMasterAccountCredentialsChange('password', e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Server</label>
+              <input
+                type="text"
+                value={bot.masterAccount.credentials.server || ''}
+                onChange={(e) => handleMasterAccountCredentialsChange('server', e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              />
+            </div>
+          </div>
+        )
+      default:
+        return <div>Unsupported connection type</div>
+    }
+  }
+
   return (
     <div className="flex flex-col h-screen relative">
       <div className="mx-6 mt-6 z-20">
@@ -498,46 +548,13 @@ const Bots: React.FC = () => {
                       value={bot.masterAccount.connectionType}
                       onChange={(e) => handleMasterAccountConnectionTypeChange(e.target.value as MasterAccount['connectionType'])}
                     >
-                      <option value="credentials">Username/Password</option>
-                      <option value="token">API Token</option>
-                      <option value="oauth">OAuth</option>
+                      <option value="MT4">MT4</option>
+                      <option value="MT5">MT5</option>
+                      <option value="cTrader">cTrader</option>
                     </select>
                   </div>
 
-                  {bot.masterAccount.connectionType === 'credentials' && (
-                    <>
-                      <div>
-                        <label className="block text-sm text-base-content/70 mb-2">Username</label>
-                        <input
-                          type="text"
-                          className="input input-bordered w-full"
-                          value={bot.masterAccount.credentials.username || ''}
-                          onChange={(e) => handleMasterAccountCredentialsChange('username', e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-base-content/70 mb-2">Password</label>
-                        <input
-                          type="password"
-                          className="input input-bordered w-full"
-                          value={bot.masterAccount.credentials.password || ''}
-                          onChange={(e) => handleMasterAccountCredentialsChange('password', e.target.value)}
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {bot.masterAccount.connectionType === 'token' && (
-                    <div>
-                      <label className="block text-sm text-base-content/70 mb-2">API Token</label>
-                      <input
-                        type="password"
-                        className="input input-bordered w-full"
-                        value={bot.masterAccount.credentials.token || ''}
-                        onChange={(e) => handleMasterAccountCredentialsChange('token', e.target.value)}
-                      />
-                    </div>
-                  )}
+                  {renderCredentialsForm()}
                 </div>
               )}
             </div>

@@ -1,57 +1,60 @@
 import { create } from 'zustand'
-import { AppState, CounterActions, SessionState } from '../../../shared/types'
+import { AppState, SessionState } from '../../../shared/types'
+import { useBotStore } from './botStore'
 
-// Custom API type definition
-interface ApiWithState extends CounterActions {
-  onStateUpdate: (callback: (sessionState: SessionState, appState: AppState) => void) => void
-  getInitialState: () => Promise<{ sessionState: SessionState, appState: AppState }>
-}
-
-interface Store {
-  // State
-  sessionState: SessionState
-  appState: AppState
-  isLoading: boolean
-
-  // Actions
-  setSessionState: (state: SessionState) => void
-  setAppState: (state: AppState) => void
-  setLoading: (loading: boolean) => void
-  
-  // Combined state setter
-  updateState: (sessionState: SessionState, appState: AppState) => void
-}
-
-export const useStore = create<Store>((set) => ({
-  // Initial state
-  sessionState: { sessionCounter: 0 },
-  appState: { appCounter: 0 },
-  isLoading: true,
-
-  // Actions
-  setSessionState: (sessionState: SessionState): void => set({ sessionState }),
-  setAppState: (appState: AppState): void => set({ appState }),
-  setLoading: (isLoading: boolean): void => set({ isLoading }),
-  
-  // Combined state setter
-  updateState: (sessionState: SessionState, appState: AppState): void => set({ sessionState, appState })
+// App state store
+export const useAppStore = create<AppState>((set, get) => ({
+  appCounter: 0,
+  bots: [],
+  setAppCounter: (value: number) => {
+    const currentState = get()
+    set({ ...currentState, appCounter: value })
+    window.store.setAppState({ ...currentState, appCounter: value })
+  },
+  setBots: (bots) => {
+    const currentState = get()
+    set({ ...currentState, bots })
+    window.store.setAppState({ ...currentState, bots })
+  }
 }))
 
-// Initialize state and setup listeners
-export const initializeStore = async (): Promise<void> => {
-  try {
-    const api = window.api as unknown as ApiWithState
-    
-    // Get initial state from main process
-    const { sessionState, appState } = await api.getInitialState()
-    useStore.setState({ sessionState, appState, isLoading: false })
+// Session state store
+export const useSessionStore = create<SessionState>((set) => ({
+  sessionCounter: 0,
+  setSessionCounter: (value: number) => {
+    set({ sessionCounter: value })
+    window.store.setSessionState({ sessionCounter: value })
+  }
+}))
 
-    // Listen for state updates
-    api.onStateUpdate((sessionState: SessionState, appState: AppState) => {
-      useStore.setState({ sessionState, appState })
+// Initialize stores and setup listeners
+export const initializeStores = async (): Promise<void> => {
+  try {
+    // Get initial states
+    const initialState = await window.store.getInitialState()
+    const { appState, sessionState } = initialState
+
+    // Set initial states
+    useAppStore.setState(appState)
+    useSessionStore.setState(sessionState)
+    useBotStore.setState({ bots: appState.bots || [] })
+
+    // Setup listeners for state updates
+    window.store.onAppStateUpdate((state) => {
+      useAppStore.setState(state)
+      useBotStore.setState({ bots: state.bots || [] })
+    })
+
+    window.store.onSessionStateUpdate((state) => {
+      useSessionStore.setState(state)
+    })
+
+    window.store.onStateUpdate((sessionState, appState) => {
+      useSessionStore.setState(sessionState)
+      useAppStore.setState(appState)
+      useBotStore.setState({ bots: appState.bots || [] })
     })
   } catch (error) {
-    console.error('Failed to initialize store:', error)
-    useStore.setState({ isLoading: false })
+    console.error('Failed to initialize stores:', error)
   }
 } 

@@ -17,6 +17,41 @@ interface StateUpdate {
 
 // Custom APIs for renderer
 const api = {
+  // Store methods
+  getAppState: (): AppState => {
+    return ipcRenderer.sendSync('store-send', { action: 'get', key: 'appState' })
+  },
+  
+  setAppState: (state: AppState): void => {
+    ipcRenderer.sendSync('store-send', { action: 'set', key: 'appState', value: state })
+  },
+  
+  getSessionState: (): SessionState => {
+    return ipcRenderer.sendSync('store-send', { action: 'get', key: 'sessionState' })
+  },
+  
+  setSessionState: (state: SessionState): void => {
+    ipcRenderer.sendSync('store-send', { action: 'set', key: 'sessionState', value: state })
+  },
+
+  // Bot management methods
+  setBots: (bots: Bot[]): void => {
+    ipcRenderer.send('set-bots', bots)
+  },
+
+  // State listeners
+  onAppStateUpdate: (callback: (state: AppState) => void): void => {
+    ipcRenderer.on('app-state-updated', (_event, state) => {
+      callback(state)
+    })
+  },
+
+  onSessionStateUpdate: (callback: (state: SessionState) => void): void => {
+    ipcRenderer.on('session-state-updated', (_event, state) => {
+      callback(state)
+    })
+  },
+
   // Session counter methods
   incrementSessionCounter: (): void => {
     ipcRenderer.send('increment-session-counter')
@@ -50,7 +85,7 @@ const api = {
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('store', api)
   } catch (error) {
     console.error(error)
   }
@@ -58,5 +93,5 @@ if (process.contextIsolated) {
   // @ts-ignore (define in dts)
   window.electron = electronAPI
   // @ts-ignore (define in dts)
-  window.api = api
+  window.store = api
 }

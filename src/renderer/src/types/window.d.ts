@@ -1,10 +1,34 @@
 import { AppState, SessionState } from '../../../shared/types'
 
+interface MasterAccount {
+  type: 'PropFirm' | 'Personal'
+  connectionType: 'MT4' | 'MT5' | 'cTrader'
+  credentials: {
+    username: string
+    password: string
+    server?: string
+  }
+}
+
 interface Bot {
   id: string
   name: string
-  pnl: number
+  isRunning: boolean
   isActive: boolean
+  pnl: number
+  avatar?: string
+  targetAccounts: {
+    id: string
+    type: 'Topstepx' | 'Bulenox' | 'TheFuturesDesk' | 'TickTickTrader'
+    account: string
+    symbolMappings: {
+      sourceSymbol: string
+      targetSymbol: string
+      multiplier: number
+      isEditing: boolean
+    }[]
+  }[]
+  masterAccount: MasterAccount
 }
 
 interface StateUpdate {
@@ -31,9 +55,25 @@ interface ElectronAPI {
   }
 }
 
+interface StoreAPI {
+  getAppState: () => AppState
+  setAppState: (state: AppState) => void
+  getSessionState: () => SessionState
+  setSessionState: (state: SessionState) => void
+  onAppStateUpdate: (callback: (state: AppState) => void) => void
+  onSessionStateUpdate: (callback: (state: SessionState) => void) => void
+  onStateUpdate: (callback: (sessionState: SessionState, appState: AppState, bots: Bot[]) => void) => void
+  getInitialState: () => Promise<StateUpdate>
+  incrementSessionCounter: () => void
+  decrementSessionCounter: () => void
+  incrementAppCounter: () => void
+  decrementAppCounter: () => void
+}
+
 declare global {
   interface Window {
     api: WindowAPI
     electron: ElectronAPI
+    store: StoreAPI
   }
 } 

@@ -2,7 +2,7 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { getAppState, updateAppCounter, getBots, addBot, updateBotPnl, removeBot, updateBotStatus, clearAllBots } from './store'
+import { getAppState, setAppState, getSessionState, setSessionState } from './store'
 import { SessionState } from '../shared/types'
 import pie from 'puppeteer-in-electron'
 import puppeteer from 'puppeteer-core'
@@ -22,11 +22,6 @@ const activeBrowsers = new Map<string, BrowserWindow>()
 
 // Initialize puppeteer-in-electron before app is ready
 pie.initialize(app).catch(console.error);
-
-// Function to broadcast state updates to all renderer processes
-const broadcastState = (): void => {
-  mainWindow?.webContents.send('state-updated', sessionState, getAppState(), getBots())
-}
 
 function createWindow(): void {
   // Create the browser window.
@@ -63,8 +58,7 @@ function createWindow(): void {
   ipcMain.handle('get-initial-state', () => {
     return {
       sessionState,
-      appState: getAppState(),
-      bots: getBots()
+      appState: getAppState()
     }
   })
 
@@ -78,7 +72,7 @@ function createWindow(): void {
       activeBrowsers.clear()
 
       // Clear all bots from store
-      clearAllBots()
+      setAppState({ ...getAppState(), bots: [] })
 
       // Broadcast the updated state
       broadcastState()
@@ -91,6 +85,13 @@ function createWindow(): void {
         error: error instanceof Error ? error.message : 'An unknown error occurred'
       }
     }
+  })
+
+  // Bot management handlers
+  ipcMain.on('set-bots', (event, bots) => {
+    const currentState = getAppState()
+    setAppState({ ...currentState, bots })
+    broadcastState()
   })
 
   // Session counter handlers
@@ -108,164 +109,172 @@ function createWindow(): void {
 
   // App counter handlers
   ipcMain.on('increment-app-counter', () => {
-    const appState = getAppState()
-    const newValue = appState.appCounter + 1
-    updateAppCounter(newValue)
+    const currentState = getAppState()
+    const newState = { ...currentState, appCounter: currentState.appCounter + 1 }
+    setAppState(newState)
+    console.log(`[Main] App counter incremented to: ${newState.appCounter}`)
     broadcastState()
   })
 
   ipcMain.on('decrement-app-counter', () => {
-    const appState = getAppState()
-    const newValue = appState.appCounter - 1
-    updateAppCounter(newValue)
+    const currentState = getAppState()
+    const newState = { ...currentState, appCounter: currentState.appCounter - 1 }
+    setAppState(newState)
+    console.log(`[Main] App counter decremented to: ${newState.appCounter}`)
     broadcastState()
+  })
+
+  // Bot management handlers
+  ipcMain.on('add-bot', (event, { botId, botName }) => {
+    const currentState = getAppState()
+    const newBot = {
+      id: botId,
+      name: botName,
+      isRunning: false,
+      isActive: true,
+      pnl: 0,
+      targetAccounts: [],
+      masterAccount: {
+        type: 'Personal' as const,
+        connectionType: 'MT4' as const,
+        credentials: {
+          username: '',
+          password: ''
+        }
+      }
+    }
+    setAppState({
+      ...currentState,
+      bots: [...currentState.bots, newBot]
+    })
+    broadcastState()
+  })
+
+  ipcMain.on('update-bot-pnl', (event, { botId, pnl }) => {
+    const currentState = getAppState()
+    const updatedBots = currentState.bots.map(bot => 
+      bot.id === botId ? { ...bot, pnl } : bot
+    )
+    setAppState({
+      ...currentState,
+      bots: updatedBots
+    })
+    broadcastState()
+  })
+
+  ipcMain.on('remove-bot', (event, botId) => {
+    const currentState = getAppState()
+    const updatedBots = currentState.bots.filter(bot => bot.id !== botId)
+    setAppState({
+      ...currentState,
+      bots: updatedBots
+    })
+    broadcastState()
+  })
+
+  ipcMain.on('update-bot-status', (event, { botId, isActive }) => {
+    const currentState = getAppState()
+    const updatedBots = currentState.bots.map(bot => 
+      bot.id === botId ? { ...bot, isActive } : bot
+    )
+    setAppState({
+      ...currentState,
+      bots: updatedBots
+    })
+    broadcastState()
+  })
+
+  // Add handler for launching puppeteer
+  ipcMain.handle('launch-puppeteer', async (event, botId, botName) => {
+    try {
+      const currentState = getAppState()
+      console.log('AppState when launching bot:', JSON.stringify(currentState, null, 2))
+      
+      // Create a new browser window for the bot
+      const botWindow = new BrowserWindow({
+        width: 800,
+        height: 600,
+        show: false,
+        webPreferences: {
+          nodeIntegration: true,
+          contextIsolation: false
+        }
+      })
+
+      // Store the browser instance
+      activeBrowsers.set(botId, botWindow)
+
+      // Load the bot's page
+      await botWindow.loadURL('about:blank')
+      botWindow.show()
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error launching puppeteer:', error)
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error occurred' 
+      }
+    }
+  })
+
+  // Add handler for closing bot window
+  ipcMain.handle('close-bot-window', async (event, botId) => {
+    try {
+      const botWindow = activeBrowsers.get(botId)
+      if (botWindow) {
+        botWindow.close()
+        activeBrowsers.delete(botId)
+        return { success: true }
+      }
+      return { success: false, error: 'Window not found' }
+    } catch (error) {
+      console.error('Error closing bot window:', error)
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error occurred' 
+      }
+    }
   })
 
   // Set up interval to update counters every 10 seconds
   setInterval(() => {
-    // Update session counter
-    sessionState.sessionCounter += 10
-    console.log(`[Main] Auto-updated session counter to: ${sessionState.sessionCounter}`)
+    try {
+      // Update session counter
+      sessionState.sessionCounter += 10
+      console.log(`[Main] Auto-updated session counter to: ${sessionState.sessionCounter}`)
 
-    // Update app counter
-    const appState = getAppState()
-    const newValue = appState.appCounter + 10
-    updateAppCounter(newValue)
-
-    // Update PnL for all active bots
-    const bots = getBots()
-    bots.forEach(bot => {
-      if (bot.isActive) {
-        updateBotPnl(bot.id, bot.pnl + 1)
+      // Update app counter and bots
+      const currentState = getAppState()
+      if (currentState) {
+        // Update app counter
+        const newState = { 
+          ...currentState, 
+          appCounter: currentState.appCounter + 10,
+          bots: currentState.bots?.map(bot => {
+            if (bot.isActive) {
+              return { ...bot, pnl: bot.pnl + 1 }
+            }
+            return bot
+          }) || []
+        }
+        setAppState(newState)
       }
-    })
 
-    // Broadcast the updates to the renderer
-    broadcastState()
+      // Broadcast the updates to the renderer
+      broadcastState()
+    } catch (error) {
+      console.error('Error in interval update:', error)
+    }
   }, 10000)
 }
 
-ipcMain.handle('launch-puppeteer', async (_, botId: string, botName: string) => {
-  console.log('launch-puppeteeraaa')
-  const botManager = new BotManager(botId)
-  botManager.start()
-})
-
-// Handle Puppeteer launch request
-ipcMain.handle('launch-puppeteeraaa', async (_, botId: string, botName: string) => {
-  try {
-    // Create a new browser window
-    const browserWindow = new BrowserWindow({
-      width: 800,
-      height: 600,
-      show: false,
-      webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false
-      }
-    });
-
-    // Store the window instance
-    activeBrowsers.set(botId, browserWindow);
-
-    // Add bot to store
-    addBot({ id: botId, name: botName, isActive: true });
-
-    // Connect puppeteer to the window
-    const browser = await pie.connect(app, puppeteer as any);
-    const page = await pie.getPage(browser, browserWindow);
-
-    // Load the URL
-    await browserWindow.loadURL('https://www.google.com');
-    browserWindow.show();
-
-    // Type "hello" in the search field after 4 seconds
-    setTimeout(async () => {
-      if (activeBrowsers.has(botId)) {
-        try {
-          await page.type('textarea[name="q"]', 'hello');
-        } catch (error) {
-          console.error('Error typing in search field:', error);
-        }
-      }
-    }, 4000);
-
-    // Execute console.log and alert after 8 seconds
-    setTimeout(async () => {
-      if (activeBrowsers.has(botId)) {
-        try {
-          await page.evaluate(() => {
-            console.log('hello from electron');
-            alert('hi');
-          });
-        } catch (error) {
-          console.error('Error executing delayed commands:', error);
-        }
-      }
-    }, 8000);
-
-    // Listen for window close event
-    browserWindow.on('closed', () => {
-      activeBrowsers.delete(botId);
-      updateBotStatus(botId, false);
-      removeBot(botId); // Remove the bot from the store when window is closed
-      // Notify renderer that the window was closed
-      BrowserWindow.getAllWindows().forEach(window => {
-        window.webContents.send('bot-window-closed', botId);
-      });
-    });
-
-    return { success: true };
-  } catch (error) {
-    console.error('Puppeteer error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
+// Function to broadcast state updates to renderer
+function broadcastState(): void {
+  if (mainWindow) {
+    mainWindow.webContents.send('state-updated', sessionState, getAppState())
   }
-});
-
-// Handle window close request
-ipcMain.handle('close-bot-window', async (_, botId: string) => {
-  try {
-    const browserWindow = activeBrowsers.get(botId);
-    if (browserWindow) {
-      browserWindow.close();
-      activeBrowsers.delete(botId);
-      updateBotStatus(botId, false);
-      removeBot(botId); // Remove the bot from the store
-      return { success: true };
-    }
-    return { success: false, error: 'Window not found' };
-  } catch (error) {
-    console.error('Error closing window:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
-});
-
-// Handle execute command request
-ipcMain.handle('execute-command', async (_, botId: string, command: string) => {
-  try {
-    const browserWindow = activeBrowsers.get(botId);
-    if (!browserWindow) {
-      return { success: false, error: 'Window not found' };
-    }
-
-    const browser = await pie.connect(app, puppeteer as any);
-    const page = await pie.getPage(browser, browserWindow);
-    await page.evaluate(command);
-    return { success: true };
-  } catch (error) {
-    console.error('Error executing command:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
-});
+}
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -299,15 +308,5 @@ app.on('window-all-closed', () => {
   }
 })
 
-// Clear the interval when the app is about to quit
-app.on('before-quit', () => {
-  // Close all bot windows
-  activeBrowsers.forEach((browserWindow) => {
-    browserWindow.close()
-  })
-  activeBrowsers.clear()
-  mainWindow = null
-})
-
 // In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
+// code. You can also put them in separate files and import them here.

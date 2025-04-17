@@ -1,39 +1,38 @@
 import { useEffect, useState } from 'react'
-import { useStore } from '../store'
-import { CounterActions } from '../../../shared/types'
+import { useAppStore, useSessionStore } from '../store'
 
 const Counters = (): JSX.Element => {
-  const { sessionState, appState } = useStore()
-  const api = window.api as unknown as CounterActions
+  const appCounter = useAppStore((state) => state.appCounter)
+  const sessionCounter = useSessionStore((state) => state.sessionCounter)
   const [lastAutoUpdate, setLastAutoUpdate] = useState<Date | null>(null)
   const [nextAutoUpdate, setNextAutoUpdate] = useState<number>(10)
 
   // Handle session counter actions
   const handleSessionIncrement = (): void => {
-    api.incrementSessionCounter()
+    window.store.setSessionState({ sessionCounter: sessionCounter + 1 })
   }
 
   const handleSessionDecrement = (): void => {
-    api.decrementSessionCounter()
+    window.store.setSessionState({ sessionCounter: sessionCounter - 1 })
   }
 
   // Handle app counter actions
   const handleAppIncrement = (): void => {
-    api.incrementAppCounter()
+    window.store.setAppState({ appCounter: appCounter + 1 })
   }
 
   const handleAppDecrement = (): void => {
-    api.decrementAppCounter()
+    window.store.setAppState({ appCounter: appCounter - 1 })
   }
 
   // Detect auto-updates by watching for changes that are multiples of 10
   useEffect(() => {
-    const prevSessionValue = sessionState.sessionCounter - 10
-    if (sessionState.sessionCounter > 0 && sessionState.sessionCounter % 10 === 0 && prevSessionValue >= 0) {
+    const prevSessionValue = sessionCounter - 10
+    if (sessionCounter > 0 && sessionCounter % 10 === 0 && prevSessionValue >= 0) {
       setLastAutoUpdate(new Date())
       setNextAutoUpdate(10)
     }
-  }, [sessionState.sessionCounter])
+  }, [sessionCounter])
 
   // Countdown timer for next auto-update
   useEffect(() => {
@@ -49,71 +48,40 @@ const Counters = (): JSX.Element => {
   }, [nextAutoUpdate])
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="card bg-base-200 shadow-md">
-        <div className="card-body">
-          <h2 className="card-title">Session Counter</h2>
-          <p className="text-sm opacity-70">This counter resets when you restart the app</p>
-          
-          <div className="flex items-center justify-center gap-4 my-4">
-            <button 
-              className="btn btn-circle btn-primary" 
-              onClick={handleSessionDecrement}
-            >
-              -
-            </button>
-            <div className="text-3xl font-bold">{sessionState.sessionCounter}</div>
-            <button 
-              className="btn btn-circle btn-primary" 
-              onClick={handleSessionIncrement}
-            >
-              +
-            </button>
-          </div>
+    <div className="flex flex-col gap-4">
+      <div className="card bg-base-200 p-4">
+        <h2 className="text-xl font-bold mb-4">Session Counter</h2>
+        <div className="flex items-center gap-4">
+          <button className="btn btn-primary" onClick={handleSessionDecrement}>
+            -
+          </button>
+          <span className="text-2xl">{sessionCounter}</span>
+          <button className="btn btn-primary" onClick={handleSessionIncrement}>
+            +
+          </button>
         </div>
       </div>
 
-      <div className="card bg-base-200 shadow-md">
-        <div className="card-body">
-          <h2 className="card-title">App Counter</h2>
-          <p className="text-sm opacity-70">This counter persists when you restart the app</p>
-          
-          <div className="flex items-center justify-center gap-4 my-4">
-            <button 
-              className="btn btn-circle btn-secondary" 
-              onClick={handleAppDecrement}
-            >
-              -
-            </button>
-            <div className="text-3xl font-bold">{appState.appCounter}</div>
-            <button 
-              className="btn btn-circle btn-secondary" 
-              onClick={handleAppIncrement}
-            >
-              +
-            </button>
-          </div>
+      <div className="card bg-base-200 p-4">
+        <h2 className="text-xl font-bold mb-4">App Counter (Persistent)</h2>
+        <div className="flex items-center gap-4">
+          <button className="btn btn-primary" onClick={handleAppDecrement}>
+            -
+          </button>
+          <span className="text-2xl">{appCounter}</span>
+          <button className="btn btn-primary" onClick={handleAppIncrement}>
+            +
+          </button>
         </div>
       </div>
 
-      <div className="card bg-accent text-accent-content shadow-md md:col-span-2">
-        <div className="card-body">
-          <h2 className="card-title">Auto Update Info</h2>
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div>
-              <p>Both counters increase by 10 every 10 seconds</p>
-              {lastAutoUpdate && (
-                <p>Last auto-update: {lastAutoUpdate.toLocaleTimeString()}</p>
-              )}
-            </div>
-            <div className="mt-4 md:mt-0">
-              <div className="radial-progress text-primary" style={{ "--value": nextAutoUpdate * 10 } as React.CSSProperties}>
-                {nextAutoUpdate}s
-              </div>
-            </div>
-          </div>
+      {lastAutoUpdate && (
+        <div className="card bg-base-200 p-4">
+          <h2 className="text-xl font-bold mb-4">Auto Update Status</h2>
+          <p>Last auto-update: {lastAutoUpdate.toLocaleTimeString()}</p>
+          <p>Next auto-update in: {nextAutoUpdate} seconds</p>
         </div>
-      </div>
+      )}
     </div>
   )
 }

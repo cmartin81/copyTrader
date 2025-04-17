@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 import { v4 as uuidv4 } from 'uuid'
+import { useAppStore } from './index'
 
 export interface MasterAccount {
   type: 'PropFirm' | 'Personal'
@@ -40,41 +40,43 @@ interface BotStore {
   deleteBot: (id: string) => void
   toggleBot: (id: string) => void
   updateBotPnl: (id: string, pnl: number) => void
+  setBots: (bots: Bot[]) => void
 }
 
-export const useBotStore = create<BotStore>()(
-  persist(
-    (set) => ({
-      bots: [],
-      addBot: (bot): void => set((state) => ({
-        bots: [
-          ...state.bots,
-          {
-            ...bot,
-            id: uuidv4(),
-            isRunning: false,
-            isActive: false,
-            pnl: 0
-          }
-        ]
-      })),
-      updateBot: (id, updates): void => set((state) => ({
-        bots: state.bots.map((bot) => (bot.id === id ? { ...bot, ...updates } : bot))
-      })),
-      deleteBot: (id): void => set((state) => ({
-        bots: state.bots.filter((bot) => bot.id !== id)
-      })),
-      toggleBot: (id): void => set((state) => ({
-        bots: state.bots.map((bot) =>
-          bot.id === id ? { ...bot, isRunning: !bot.isRunning } : bot
-        )
-      })),
-      updateBotPnl: (id, pnl): void => set((state) => ({
-        bots: state.bots.map((bot) => (bot.id === id ? { ...bot, pnl } : bot))
-      }))
-    }),
-    {
-      name: 'bot-storage'
+export const useBotStore = create<BotStore>((set, get) => ({
+  bots: [],
+  setBots: (bots) => {
+    set({ bots })
+    // Only send the bots array to the main process
+    window.store.setBots(bots)
+  },
+  addBot: (bot) => {
+    const newBot = {
+      ...bot,
+      id: uuidv4(),
+      isRunning: false,
+      isActive: false,
+      pnl: 0
     }
-  )
-) 
+    const updatedBots = [...get().bots, newBot]
+    get().setBots(updatedBots)
+  },
+  updateBot: (id, updates) => {
+    const updatedBots = get().bots.map((bot) => (bot.id === id ? { ...bot, ...updates } : bot))
+    get().setBots(updatedBots)
+  },
+  deleteBot: (id) => {
+    const updatedBots = get().bots.filter((bot) => bot.id !== id)
+    get().setBots(updatedBots)
+  },
+  toggleBot: (id) => {
+    const updatedBots = get().bots.map((bot) =>
+      bot.id === id ? { ...bot, isRunning: !bot.isRunning } : bot
+    )
+    get().setBots(updatedBots)
+  },
+  updateBotPnl: (id, pnl) => {
+    const updatedBots = get().bots.map((bot) => (bot.id === id ? { ...bot, pnl } : bot))
+    get().setBots(updatedBots)
+  }
+})) 

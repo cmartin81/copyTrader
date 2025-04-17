@@ -1,10 +1,11 @@
-import { getBots } from '../../store'
+import { getAppState } from '../../store'
 
 class BotManager {
   settings: any
   constructor(botId: string) {
     console.log('BotManager created for bot: ' + botId)
-    console.log(getBots())
+    const appState = getAppState()
+    console.log('Current bots:', appState.bots)
     //this.settings = settings
   }
 

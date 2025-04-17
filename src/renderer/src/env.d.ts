@@ -23,4 +23,12 @@ interface Window {
     onStateUpdate: (callback: (sessionState: SessionState, appState: AppState) => void) => void
     getInitialState: () => Promise<{ sessionState: SessionState, appState: AppState }>
   }
+  store: {
+    getAppState: () => AppState
+    setAppState: (state: AppState) => void
+    getSessionState: () => SessionState
+    setSessionState: (state: SessionState) => void
+    onAppStateUpdate: (callback: (state: AppState) => void) => void
+    onSessionStateUpdate: (callback: (state: SessionState) => void) => void
+  }
 }

@@ -1,4 +1,5 @@
 import React from 'react'
+import AppStateCard from '../components/AppStateCard'
 
 const Dashboard: React.FC = () => {
   return (
@@ -16,6 +17,11 @@ const Dashboard: React.FC = () => {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* App State Card */}
+      <div className="mb-8">
+        <AppStateCard />
       </div>
 
       {/* Features Grid */}

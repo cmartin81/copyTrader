@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Routes, Route, HashRouter, Navigate } from 'react-router-dom'
-import { initializeStore, useStore } from './store'
+import { initializeStores, useAppStore, useSessionStore } from './store'
 import { useSettingsStore } from './store/settingsStore'
 import './styles/app.css'
 
@@ -15,13 +15,12 @@ import KitchenSink from './pages/KitchenSink'
 import Bots from './pages/Bots'
 
 function App(): JSX.Element {
-  const { isLoading } = useStore()
   const { theme } = useSettingsStore()
   const [initialized, setInitialized] = useState(false)
   
   useEffect(() => {
     const init = async (): Promise<void> => {
-      await initializeStore()
+      await initializeStores()
       setInitialized(true)
     }
     
@@ -33,8 +32,8 @@ function App(): JSX.Element {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
   
-  // Show loading until store is initialized
-  if (isLoading || !initialized) {
+  // Show loading until stores are initialized
+  if (!initialized) {
     return (
       <div className="flex justify-center items-center h-screen bg-base-300">
         <span className="loading loading-spinner loading-lg text-primary"></span>

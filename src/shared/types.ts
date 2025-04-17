@@ -2,8 +2,38 @@ export interface SessionState {
   sessionCounter: number
 }
 
+export interface Bot {
+  id: string
+  name: string
+  isRunning: boolean
+  isActive: boolean
+  pnl: number
+  avatar?: string
+  targetAccounts: {
+    id: string
+    type: 'Topstepx' | 'Bulenox' | 'TheFuturesDesk' | 'TickTickTrader'
+    account: string
+    symbolMappings: {
+      sourceSymbol: string
+      targetSymbol: string
+      multiplier: number
+      isEditing: boolean
+    }[]
+  }[]
+  masterAccount: {
+    type: 'PropFirm' | 'Personal'
+    connectionType: 'MT4' | 'MT5' | 'cTrader'
+    credentials: {
+      username: string
+      password: string
+      server?: string
+    }
+  }
+}
+
 export interface AppState {
   appCounter: number
+  bots: Bot[]
 }
 
 export interface CounterActions {
