@@ -76,6 +76,11 @@ const api = {
   // Initial state request
   getInitialState: (): Promise<StateUpdate> => {
     return ipcRenderer.invoke('get-initial-state')
+  },
+
+  // Logs directory methods
+  openLogsDirectory: (): void => {
+    ipcRenderer.send('open-logs-directory')
   }
 }
 

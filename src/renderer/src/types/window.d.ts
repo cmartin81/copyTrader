@@ -74,6 +74,7 @@ interface StoreAPI {
   decrementSessionCounter: () => void
   incrementAppCounter: () => void
   decrementAppCounter: () => void
+  openLogsDirectory: () => void
 }
 
 declare global {

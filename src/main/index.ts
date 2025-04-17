@@ -1,13 +1,14 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
+import icon from '../../build/icon.png'
 import { getAppState, setAppState, getSessionState, setSessionState } from './store'
 import { SessionState } from '../shared/types'
 import pie from 'puppeteer-in-electron'
 import puppeteer from 'puppeteer-core'
 import type { Browser } from 'puppeteer-core'
 import BotManager from './services/botManager/botManager'
+import { logToFile, getLogsDirectory, createNewLogFile } from './utils/logger'
 
 // Session state (non-persistent, reset on app restart)
 const sessionState: SessionState = {
@@ -22,6 +23,12 @@ const activeBrowsers = new Map<string, BrowserWindow>()
 
 // Initialize puppeteer-in-electron before app is ready
 pie.initialize(app).catch(console.error);
+
+// Create a new log file on app start
+createNewLogFile()
+
+// Log app start
+logToFile('Application started')
 
 function createWindow(): void {
   // Create the browser window.
@@ -91,19 +98,20 @@ function createWindow(): void {
   ipcMain.on('set-bots', (event, bots) => {
     const currentState = getAppState()
     setAppState({ ...currentState, bots })
+    logToFile(`Bots updated: ${JSON.stringify(bots)}`)
     broadcastState()
   })
 
   // Session counter handlers
   ipcMain.on('increment-session-counter', () => {
     sessionState.sessionCounter++
-    console.log(`[Main] Session counter incremented to: ${sessionState.sessionCounter}`)
+    logToFile(`Session counter incremented to: ${sessionState.sessionCounter}`)
     broadcastState()
   })
 
   ipcMain.on('decrement-session-counter', () => {
     sessionState.sessionCounter--
-    console.log(`[Main] Session counter decremented to: ${sessionState.sessionCounter}`)
+    logToFile(`Session counter decremented to: ${sessionState.sessionCounter}`)
     broadcastState()
   })
 
@@ -112,7 +120,7 @@ function createWindow(): void {
     const currentState = getAppState()
     const newState = { ...currentState, appCounter: currentState.appCounter + 1 }
     setAppState(newState)
-    console.log(`[Main] App counter incremented to: ${newState.appCounter}`)
+    logToFile(`App counter incremented to: ${newState.appCounter}`)
     broadcastState()
   })
 
@@ -120,7 +128,7 @@ function createWindow(): void {
     const currentState = getAppState()
     const newState = { ...currentState, appCounter: currentState.appCounter - 1 }
     setAppState(newState)
-    console.log(`[Main] App counter decremented to: ${newState.appCounter}`)
+    logToFile(`App counter decremented to: ${newState.appCounter}`)
     broadcastState()
   })
 
@@ -276,6 +284,16 @@ function broadcastState(): void {
   }
 }
 
+// Handle opening logs directory
+ipcMain.on('open-logs-directory', () => {
+  shell.openPath(getLogsDirectory())
+})
+
+// Handle state updates
+ipcMain.on('state-updated', () => {
+  logToFile('State updated')
+})
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -306,6 +324,11 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+// Log app quit
+app.on('before-quit', () => {
+  logToFile('Application quitting')
 })
 
 // In this file you can include the rest of your app's specific main process
