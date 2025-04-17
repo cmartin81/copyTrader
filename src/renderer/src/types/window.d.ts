@@ -21,6 +21,10 @@ interface Bot {
     id: string
     type: 'Topstepx' | 'Bulenox' | 'TheFuturesDesk' | 'TickTickTrader'
     account: string
+    credentials?: {
+      username: string
+      password: string
+    }
     symbolMappings: {
       sourceSymbol: string
       targetSymbol: string
@@ -49,7 +53,8 @@ interface WindowAPI {
 
 interface ElectronAPI {
   ipcRenderer: {
-    invoke: (channel: string, ...args: unknown[]) => Promise<IpcResponse>
+    invoke: (channel: string, ...args: unknown[]) => Promise<IpcResponse | string>
+    send: (channel: string, ...args: unknown[]) => void
     on: (channel: string, callback: (event: any, ...args: any[]) => void) => void
     removeAllListeners: (channel: string) => void
   }

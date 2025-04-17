@@ -9,6 +9,7 @@ import puppeteer from 'puppeteer-core'
 import type { Browser } from 'puppeteer-core'
 import BotManager from './services/botManager/botManager'
 import { logToFile, getLogsDirectory, createNewLogFile } from './utils/logger'
+import { setupPasswordEncryptionHandlers } from './ipc/passwordEncryption'
 
 // Session state (non-persistent, reset on app restart)
 const sessionState: SessionState = {
@@ -293,6 +294,9 @@ ipcMain.on('open-logs-directory', () => {
 ipcMain.on('state-updated', () => {
   logToFile('State updated')
 })
+
+// Set up IPC handlers
+setupPasswordEncryptionHandlers()
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

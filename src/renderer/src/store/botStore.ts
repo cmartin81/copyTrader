@@ -23,6 +23,10 @@ export interface Bot {
     id: string
     type: 'Topstepx' | 'Bulenox' | 'TheFuturesDesk' | 'TickTickTrader'
     account: string
+    credentials?: {
+      username: string
+      password: string
+    }
     symbolMappings: {
       sourceSymbol: string
       targetSymbol: string
@@ -35,48 +39,69 @@ export interface Bot {
 
 interface BotStore {
   bots: Bot[]
-  addBot: (bot: Omit<Bot, 'id' | 'isRunning' | 'isActive' | 'pnl'>) => void
-  updateBot: (id: string, updates: Partial<Bot>) => void
-  deleteBot: (id: string) => void
-  toggleBot: (id: string) => void
-  updateBotPnl: (id: string, pnl: number) => void
-  setBots: (bots: Bot[]) => void
+  addBot: (bot: Omit<Bot, 'id'>) => Promise<void>
+  updateBot: (id: string, updates: Partial<Bot>) => Promise<void>
+  deleteBot: (id: string) => Promise<void>
+  toggleBot: (id: string) => Promise<void>
+  updateBotPnl: (id: string, pnl: number) => Promise<void>
 }
 
 export const useBotStore = create<BotStore>((set, get) => ({
   bots: [],
-  setBots: (bots) => {
-    set({ bots })
-    // Only send the bots array to the main process
-    window.store.setBots(bots)
+  addBot: async (bot) => {
+    const newBot = { ...bot, id: uuidv4() }
+    set((state) => ({ bots: [...state.bots, newBot] }))
+    window.electron.ipcRenderer.send('set-bots', get().bots)
   },
-  addBot: (bot) => {
-    const newBot = {
-      ...bot,
-      id: uuidv4(),
-      isRunning: false,
-      isActive: false,
-      pnl: 0
+  updateBot: async (id, updates) => {
+    if (updates.targetAccounts) {
+      // Handle password encryption for target accounts
+      const encryptedAccounts = await Promise.all(
+        updates.targetAccounts.map(async (account) => {
+          if (account.credentials) {
+            const encryptedPassword = await window.electron.ipcRenderer.invoke('encrypt-password', account.credentials.password) as string
+            return {
+              ...account,
+              credentials: {
+                ...account.credentials,
+                password: encryptedPassword
+              }
+            }
+          }
+          return account
+        })
+      )
+      updates = {
+        ...updates,
+        targetAccounts: encryptedAccounts
+      }
     }
-    const updatedBots = [...get().bots, newBot]
-    get().setBots(updatedBots)
+    
+    set((state) => ({
+      bots: state.bots.map((bot) =>
+        bot.id === id ? { ...bot, ...updates } : bot
+      )
+    }))
+    window.electron.ipcRenderer.send('set-bots', get().bots)
   },
-  updateBot: (id, updates) => {
-    const updatedBots = get().bots.map((bot) => (bot.id === id ? { ...bot, ...updates } : bot))
-    get().setBots(updatedBots)
+  deleteBot: async (id) => {
+    set((state) => ({ bots: state.bots.filter((bot) => bot.id !== id) }))
+    window.electron.ipcRenderer.send('set-bots', get().bots)
   },
-  deleteBot: (id) => {
-    const updatedBots = get().bots.filter((bot) => bot.id !== id)
-    get().setBots(updatedBots)
+  toggleBot: async (id) => {
+    set((state) => ({
+      bots: state.bots.map((bot) =>
+        bot.id === id ? { ...bot, isRunning: !bot.isRunning } : bot
+      )
+    }))
+    window.electron.ipcRenderer.send('set-bots', get().bots)
   },
-  toggleBot: (id) => {
-    const updatedBots = get().bots.map((bot) =>
-      bot.id === id ? { ...bot, isRunning: !bot.isRunning } : bot
-    )
-    get().setBots(updatedBots)
-  },
-  updateBotPnl: (id, pnl) => {
-    const updatedBots = get().bots.map((bot) => (bot.id === id ? { ...bot, pnl } : bot))
-    get().setBots(updatedBots)
+  updateBotPnl: async (id, pnl) => {
+    set((state) => ({
+      bots: state.bots.map((bot) =>
+        bot.id === id ? { ...bot, pnl } : bot
+      )
+    }))
+    window.electron.ipcRenderer.send('set-bots', get().bots)
   }
 })) 

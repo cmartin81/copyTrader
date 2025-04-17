@@ -1,5 +1,5 @@
 import { AbstractTargetAccount } from "./abstractTargetAccount";
-import { app } from 'electron'
+import { app, safeStorage } from 'electron'
 import pie from 'puppeteer-in-electron'
 import { Browser } from 'puppeteer-core'
 
@@ -43,11 +43,16 @@ export class ProjectXBrowser extends AbstractTargetAccount {
     this.config = PropFirmConfig[propfirm] as PropConfig;
 
     this.username = username
-    this.password = password
+    this.password = password ? this.decryptPassword(password) : null
     this.config = PropFirmConfig[propfirm]
 
 //    this.apiUrl =  config.exchanges[this.exchangeName].apiUrl
 
+  }
+
+  private decryptPassword(encryptedPassword: string): string {
+    const retrievedEncryptedBuffer = Buffer.from(encryptedPassword, 'base64')
+    return safeStorage.decryptString(retrievedEncryptedBuffer)
   }
 
   async start(): Promise<void> {

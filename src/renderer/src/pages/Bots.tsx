@@ -4,8 +4,14 @@ import { useBotStore, Bot, MasterAccount } from '../store/botStore'
 import { useSessionStore } from '../store/sessionStore'
 import { createPortal } from 'react-dom'
 import { v4 as uuidv4 } from 'uuid'
+import { TargetAccount, IpcResponse } from '../types/window'
 
 type LogSize = 'normal' | 'half' | 'full'
+
+// Type guard for IpcResponse
+const isIpcResponse = (response: unknown): response is IpcResponse => {
+  return typeof response === 'object' && response !== null && 'success' in response
+}
 
 const Bots: React.FC = () => {
   const { botId } = useParams<{ botId: string }>()
@@ -29,6 +35,10 @@ const Bots: React.FC = () => {
   const [newTargetAccount, setNewTargetAccount] = useState<Partial<Bot['targetAccounts'][0]>>({
     type: undefined,
     account: '',
+    credentials: {
+      username: '',
+      password: ''
+    },
     symbolMappings: []
   })
   const [isAddBotModalOpen, setIsAddBotModalOpen] = useState(false)
@@ -211,26 +221,55 @@ const Bots: React.FC = () => {
     }
   }
 
-  const handleAddTargetAccount = (): void => {
-    if (newTargetAccount.type && newTargetAccount.account) {
-      updateBot(bot.id, {
-        targetAccounts: [
-          ...bot.targetAccounts,
-          {
-            id: uuidv4(),
-            type: newTargetAccount.type,
-            account: newTargetAccount.account,
-            symbolMappings: []
-          }
-        ]
-      })
-      setNewTargetAccount({
-        type: undefined,
-        account: '',
-        symbolMappings: []
-      })
-      setShowAddTarget(false)
-      addLog(`Added new target account: ${newTargetAccount.type}`)
+  const handleAddTargetAccount = async (): Promise<void> => {
+    if (newTargetAccount.type && newTargetAccount.account && newTargetAccount.credentials?.username && newTargetAccount.credentials?.password) {
+      // Encrypt the password before saving
+      const response = await window.electron.ipcRenderer.invoke('encrypt-password', newTargetAccount.credentials.password)
+      
+      let encryptedPassword: string | undefined
+      
+      if (typeof response === 'string') {
+        encryptedPassword = response
+      } else if (isIpcResponse(response)) {
+        if (response.success) {
+          encryptedPassword = response.data as string
+        } else {
+          addLog(`Error encrypting password: ${response.error || 'Unknown error'}`)
+          return
+        }
+      } else {
+        addLog('Error encrypting password: Invalid response type')
+        return
+      }
+
+      if (encryptedPassword) {
+        updateBot(bot.id, {
+          targetAccounts: [
+            ...bot.targetAccounts,
+            {
+              id: uuidv4(),
+              type: newTargetAccount.type,
+              account: newTargetAccount.account,
+              credentials: {
+                username: newTargetAccount.credentials.username,
+                password: encryptedPassword
+              },
+              symbolMappings: []
+            }
+          ]
+        })
+        setNewTargetAccount({
+          type: undefined,
+          account: '',
+          credentials: {
+            username: '',
+            password: ''
+          },
+          symbolMappings: []
+        })
+        setShowAddTarget(false)
+        addLog(`Added new target account: ${newTargetAccount.type}`)
+      }
     }
   }
 
@@ -613,41 +652,79 @@ const Bots: React.FC = () => {
                         <option value="TickTickTrader">TickTickTrader</option>
                       </select>
                     </div>
-                    {newTargetAccount.type === 'Topstepx' && (
-                      <div className="flex gap-2 items-end">
-                        <div className="flex-1">
-                          <label className="block text-sm text-base-content/70 mb-2">Account</label>
-                          <select
-                            className="select select-bordered w-full"
-                            value={newTargetAccount.account}
-                            onChange={(e) => setNewTargetAccount({ ...newTargetAccount, account: e.target.value })}
-                          >
-                            <option value="">Select an account</option>
-                            <option value="Account 1">Account 1</option>
-                            <option value="Account 2">Account 2</option>
-                          </select>
-                        </div>
-                        <button
-                          className="btn btn-ghost btn-square"
-                          title="Sync accounts"
-                          onClick={handleSyncAccounts}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
-                          </svg>
-                        </button>
-                      </div>
-                    )}
-                    {newTargetAccount.type && newTargetAccount.type !== 'Topstepx' && (
-                      <div>
-                        <label className="block text-sm text-base-content/70 mb-2">Account ID</label>
-                        <input
-                          type="text"
-                          className="input input-bordered w-full"
-                          value={newTargetAccount.account}
-                          onChange={(e) => setNewTargetAccount({ ...newTargetAccount, account: e.target.value })}
-                        />
-                      </div>
+                    {newTargetAccount.type && (
+                      <>
+                        {(newTargetAccount.type === 'Topstepx' || newTargetAccount.type === 'Bulenox' || newTargetAccount.type === 'TheFuturesDesk') && (
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm text-base-content/70 mb-2">Username</label>
+                              <input
+                                type="text"
+                                className="input input-bordered w-full"
+                                value={newTargetAccount.credentials?.username || ''}
+                                onChange={(e) => setNewTargetAccount({
+                                  ...newTargetAccount,
+                                  credentials: {
+                                    username: e.target.value,
+                                    password: newTargetAccount.credentials?.password || ''
+                                  }
+                                })}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm text-base-content/70 mb-2">Password</label>
+                              <input
+                                type="password"
+                                className="input input-bordered w-full"
+                                value={newTargetAccount.credentials?.password || ''}
+                                onChange={(e) => setNewTargetAccount({
+                                  ...newTargetAccount,
+                                  credentials: {
+                                    username: newTargetAccount.credentials?.username || '',
+                                    password: e.target.value
+                                  }
+                                })}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {newTargetAccount.type === 'Topstepx' && (
+                          <div className="flex gap-2 items-end">
+                            <div className="flex-1">
+                              <label className="block text-sm text-base-content/70 mb-2">Account</label>
+                              <select
+                                className="select select-bordered w-full"
+                                value={newTargetAccount.account}
+                                onChange={(e) => setNewTargetAccount({ ...newTargetAccount, account: e.target.value })}
+                              >
+                                <option value="">Select an account</option>
+                                <option value="Account 1">Account 1</option>
+                                <option value="Account 2">Account 2</option>
+                              </select>
+                            </div>
+                            <button
+                              className="btn btn-ghost btn-square"
+                              title="Sync accounts"
+                              onClick={handleSyncAccounts}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
+                        {newTargetAccount.type && newTargetAccount.type !== 'Topstepx' && (
+                          <div>
+                            <label className="block text-sm text-base-content/70 mb-2">Account ID</label>
+                            <input
+                              type="text"
+                              className="input input-bordered w-full"
+                              value={newTargetAccount.account}
+                              onChange={(e) => setNewTargetAccount({ ...newTargetAccount, account: e.target.value })}
+                            />
+                          </div>
+                        )}
+                      </>
                     )}
                     <div className="flex justify-end space-x-2">
                       <button
