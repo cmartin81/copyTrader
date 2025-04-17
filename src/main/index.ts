@@ -160,7 +160,7 @@ function createWindow(): void {
 
   ipcMain.on('update-bot-pnl', (event, { botId, pnl }) => {
     const currentState = getAppState()
-    const updatedBots = currentState.bots.map(bot => 
+    const updatedBots = currentState.bots.map(bot =>
       bot.id === botId ? { ...bot, pnl } : bot
     )
     setAppState({
@@ -182,7 +182,7 @@ function createWindow(): void {
 
   ipcMain.on('update-bot-status', (event, { botId, isActive }) => {
     const currentState = getAppState()
-    const updatedBots = currentState.bots.map(bot => 
+    const updatedBots = currentState.bots.map(bot =>
       bot.id === botId ? { ...bot, isActive } : bot
     )
     setAppState({
@@ -195,33 +195,33 @@ function createWindow(): void {
   // Add handler for launching puppeteer
   ipcMain.handle('launch-puppeteer', async (event, botId, botName) => {
     try {
-      const currentState = getAppState()
-      console.log('AppState when launching bot:', JSON.stringify(currentState, null, 2))
-      
+      const botManager = new BotManager(botId)
+
+      await botManager.start()
       // Create a new browser window for the bot
-      const botWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
-        show: false,
-        webPreferences: {
-          nodeIntegration: true,
-          contextIsolation: false
-        }
-      })
-
-      // Store the browser instance
-      activeBrowsers.set(botId, botWindow)
-
-      // Load the bot's page
-      await botWindow.loadURL('about:blank')
-      botWindow.show()
+      // const botWindow = new BrowserWindow({
+      //   width: 800,
+      //   height: 600,
+      //   show: false,
+      //   webPreferences: {
+      //     nodeIntegration: true,
+      //     contextIsolation: false
+      //   }
+      // })
+      //
+      // // Store the browser instance
+      // activeBrowsers.set(botId, botWindow)
+      //
+      // // Load the bot's page
+      // await botWindow.loadURL('about:blank')
+      // botWindow.show()
 
       return { success: true }
     } catch (error) {
       console.error('Error launching puppeteer:', error)
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error occurred' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       }
     }
   })
@@ -238,9 +238,9 @@ function createWindow(): void {
       return { success: false, error: 'Window not found' }
     } catch (error) {
       console.error('Error closing bot window:', error)
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error occurred' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       }
     }
   })
@@ -256,8 +256,8 @@ function createWindow(): void {
       const currentState = getAppState()
       if (currentState) {
         // Update app counter
-        const newState = { 
-          ...currentState, 
+        const newState = {
+          ...currentState,
           appCounter: currentState.appCounter + 10,
           bots: currentState.bots?.map(bot => {
             if (bot.isActive) {
