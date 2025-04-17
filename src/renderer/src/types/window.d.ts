@@ -53,6 +53,12 @@ interface ElectronAPI {
     on: (channel: string, callback: (event: any, ...args: any[]) => void) => void
     removeAllListeners: (channel: string) => void
   }
+  process: {
+    env: {
+      DEV: boolean
+    }
+  }
+  isDev: boolean
 }
 
 interface StoreAPI {

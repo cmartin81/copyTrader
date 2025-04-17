@@ -1,5 +1,6 @@
 import React from 'react'
 import AppStateCard from '../components/AppStateCard'
+import SessionStateCard from '../components/SessionStateCard'
 
 const Dashboard: React.FC = () => {
   return (
@@ -22,6 +23,11 @@ const Dashboard: React.FC = () => {
       {/* App State Card */}
       <div className="mb-8">
         <AppStateCard />
+      </div>
+
+      {/* Session State Card */}
+      <div className="mb-8">
+        <SessionStateCard />
       </div>
 
       {/* Features Grid */}
