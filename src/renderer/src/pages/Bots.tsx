@@ -32,6 +32,14 @@ const Bots: React.FC = () => {
   const [showAddTarget, setShowAddTarget] = useState(false)
   const [showTestMenu, setShowTestMenu] = useState<string | null>(null)
   const [testSymbol, setTestSymbol] = useState('')
+  const [editingAccount, setEditingAccount] = useState<string | null>(null)
+  const [showPasswordModal, setShowPasswordModal] = useState<string | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [editedAccount, setEditedAccount] = useState<Partial<Bot['targetAccounts'][0]>>({
+    type: undefined,
+    account: '',
+    credentials: undefined
+  })
   const [newTargetAccount, setNewTargetAccount] = useState<Partial<Bot['targetAccounts'][0]>>({
     type: undefined,
     account: '',
@@ -225,7 +233,6 @@ const Bots: React.FC = () => {
     if (newTargetAccount.type && newTargetAccount.account && newTargetAccount.credentials?.username && newTargetAccount.credentials?.password) {
       // Encrypt the password before saving
       const response = await window.electron.ipcRenderer.invoke('encrypt-password', newTargetAccount.credentials.password)
-
       let encryptedPassword: string | undefined
 
       if (typeof response === 'string') {
@@ -425,6 +432,95 @@ const Bots: React.FC = () => {
       default:
         return <div>Unsupported connection type</div>
     }
+  }
+
+  const handleEditAccount = (account: Bot['targetAccounts'][0]): void => {
+    setEditingAccount(account.id)
+    setEditedAccount({
+      type: account.type,
+      account: account.account,
+      credentials: undefined
+    })
+  }
+
+  const handleSaveAccount = async (accountId: string): Promise<void> => {
+    if (editedAccount.type && editedAccount.account) {
+      const originalAccount = bot.targetAccounts.find(acc => acc.id === accountId)
+      if (!originalAccount) return
+
+      // Only update non-credential fields
+      updateBot(bot.id, {
+        targetAccounts: bot.targetAccounts.map(acc => {
+          if (acc.id === accountId) {
+            return {
+              ...acc,
+              type: editedAccount.type!,
+              account: editedAccount.account!
+              // Don't include credentials at all
+            }
+          }
+          return acc
+        })
+      })
+      setEditingAccount(null)
+      setEditedAccount({
+        type: undefined,
+        account: '',
+        credentials: undefined
+      })
+      addLog(`Updated account: ${editedAccount.type}`)
+    }
+  }
+
+  const handleChangePassword = async (accountId: string): Promise<void> => {
+    if (!newPassword) {
+      setShowPasswordModal(null)
+      setNewPassword('')
+      return
+    }
+
+    // Encrypt the new password
+    const response = await window.electron.ipcRenderer.invoke('encrypt-password', newPassword)
+    let encryptedPassword: string | undefined
+
+    if (typeof response === 'string') {
+      encryptedPassword = response
+    } else if (isIpcResponse(response)) {
+      if (response.success) {
+        encryptedPassword = response.data as string
+      } else {
+        addLog(`Error encrypting password: ${response.error || 'Unknown error'}`)
+        return
+      }
+    } else {
+      addLog('Error encrypting password: Invalid response type')
+      return
+    }
+
+    if (encryptedPassword) {
+      const originalAccount = bot.targetAccounts.find(acc => acc.id === accountId)
+      if (!originalAccount) return
+
+      // Only update the password
+      updateBot(bot.id, {
+        targetAccounts: bot.targetAccounts.map(acc => {
+          if (acc.id === accountId) {
+            return {
+              ...acc,
+              credentials: {
+                username: originalAccount.credentials?.username || '',
+                password: encryptedPassword
+              }
+            }
+          }
+          return acc
+        })
+      })
+      addLog('Password updated successfully')
+    }
+
+    setShowPasswordModal(null)
+    setNewPassword('')
   }
 
   return (
@@ -760,6 +856,14 @@ const Bots: React.FC = () => {
                         </button>
                         <button
                           className="btn btn-ghost btn-sm"
+                          onClick={() => handleEditAccount(account)}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          </svg>
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-sm"
                           onClick={() => {
                             updateBot(bot.id, {
                               targetAccounts: bot.targetAccounts.filter(a => a.id !== account.id)
@@ -774,98 +878,190 @@ const Bots: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-
-                      {account.symbolMappings.map((mapping, index) => (
-                        <div key={index} className="flex items-center space-x-2">
-                          <input
-                            type="text"
-                            className="input input-bordered input-sm w-28"
-                            value={mapping.sourceSymbol}
-                            disabled={!mapping.isEditing}
-                            onChange={(e) => {
-                              const newMappings = [...account.symbolMappings]
-                              newMappings[index] = { ...mapping, sourceSymbol: e.target.value }
-                              updateBot(bot.id, {
-                                targetAccounts: bot.targetAccounts.map(a =>
-                                  a.id === account.id ? { ...a, symbolMappings: newMappings } : a
-                                )
-                              })
-                            }}
-                            placeholder="Source"
-                          />
-                          <span>→</span>
-                          <input
-                            type="text"
-                            className="input input-bordered input-sm w-28"
-                            value={mapping.targetSymbol}
-                            disabled={!mapping.isEditing}
-                            onChange={(e) => {
-                              const newMappings = [...account.symbolMappings]
-                              newMappings[index] = { ...mapping, targetSymbol: e.target.value }
-                              updateBot(bot.id, {
-                                targetAccounts: bot.targetAccounts.map(a =>
-                                  a.id === account.id ? { ...a, symbolMappings: newMappings } : a
-                                )
-                              })
-                            }}
-                            placeholder="Target"
-                          />
-                          <span>×</span>
-                          <input
-                            type="number"
-                            className="input input-bordered input-sm w-12"
-                            value={mapping.multiplier}
-                            disabled={!mapping.isEditing}
-                            onChange={(e) => {
-                              const newMappings = [...account.symbolMappings]
-                              newMappings[index] = { ...mapping, multiplier: parseFloat(e.target.value) || 1 }
-                              updateBot(bot.id, {
-                                targetAccounts: bot.targetAccounts.map(a =>
-                                  a.id === account.id ? { ...a, symbolMappings: newMappings } : a
-                                )
-                              })
-                            }}
-                            step="1"
-                          />
-                          <div className="space-x-1">
-                            {mapping.isEditing ? (
-                              <button
-                                className="btn btn-success btn-sm btn-square"
-                                onClick={() => handleSaveMapping(account.id, index)}
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
-                              </button>
-                            ) : (
-                              <button
-                                className="btn btn-info btn-sm btn-square"
-                                onClick={() => handleEditMapping(account.id, index)}
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                                </svg>
-                              </button>
+                    {editingAccount === account.id ? (
+                      <div className="space-y-4">
+                        {editedAccount.type && (
+                          <>
+                            {(editedAccount.type === 'TopstepX' || editedAccount.type === 'Bulenox' || editedAccount.type === 'TheFuturesDesk') && (
+                              <div className="space-y-4">
+                                <div className="flex gap-4 items-end">
+                                  <div className="flex-1">
+                                    <label className="block text-sm text-base-content/70 mb-2">Username</label>
+                                    <input
+                                      type="text"
+                                      className="input input-bordered w-full"
+                                      value={account.credentials?.username || ''}
+                                      disabled
+                                    />
+                                  </div>
+                                  <div className="flex-1">
+                                    <label className="block text-sm text-base-content/70 mb-2">Password</label>
+                                    <div className="flex gap-2">
+                                      <input
+                                        type="password"
+                                        className="input input-bordered w-full"
+                                        value="********"
+                                        disabled
+                                      />
+                                      <button
+                                        className="btn btn-ghost btn-sm"
+                                        onClick={() => setShowPasswordModal(account.id)}
+                                      >
+                                        Change
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
                             )}
-                            <button
-                              className="btn btn-error btn-sm btn-square"
-                              onClick={() => handleDeleteSymbolMapping(account.id, index)}
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                              </svg>
-                            </button>
-                          </div>
+                            {editedAccount.type === 'TopstepX' && (
+                              <div className="flex gap-2 items-end">
+                                <div className="flex-1">
+                                  <label className="block text-sm text-base-content/70 mb-2">Account</label>
+                                  <select
+                                    className="select select-bordered w-full"
+                                    value={editedAccount.account}
+                                    onChange={(e) => setEditedAccount({ ...editedAccount, account: e.target.value })}
+                                  >
+                                    <option value="">Select an account</option>
+                                    <option value="Account 1">Account 1</option>
+                                    <option value="Account 2">Account 2</option>
+                                  </select>
+                                </div>
+                                <button
+                                  className="btn btn-ghost btn-square"
+                                  title="Sync accounts"
+                                  onClick={handleSyncAccounts}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                                  </svg>
+                                </button>
+                              </div>
+                            )}
+                            {editedAccount.type && editedAccount.type !== 'TopstepX' && (
+                              <div>
+                                <label className="block text-sm text-base-content/70 mb-2">Account ID</label>
+                                <input
+                                  type="text"
+                                  className="input input-bordered w-full"
+                                  value={editedAccount.account}
+                                  onChange={(e) => setEditedAccount({ ...editedAccount, account: e.target.value })}
+                                />
+                              </div>
+                            )}
+                          </>
+                        )}
+                        <div className="flex justify-end space-x-2">
+                          <button
+                            className="btn btn-ghost"
+                            onClick={() => {
+                              setEditingAccount(null)
+                            }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            className="btn btn-primary"
+                            onClick={() => handleSaveAccount(account.id)}
+                          >
+                            Save
+                          </button>
                         </div>
-                      ))}
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => handleAddSymbolMapping(account.id)}
-                      >
-                        + Add Mapping
-                      </button>
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {account.symbolMappings.map((mapping, index) => (
+                          <div key={index} className="flex items-center space-x-2">
+                            <input
+                              type="text"
+                              className="input input-bordered input-sm w-28"
+                              value={mapping.sourceSymbol}
+                              disabled={!mapping.isEditing}
+                              onChange={(e) => {
+                                const newMappings = [...account.symbolMappings]
+                                newMappings[index] = { ...mapping, sourceSymbol: e.target.value }
+                                updateBot(bot.id, {
+                                  targetAccounts: bot.targetAccounts.map(a =>
+                                    a.id === account.id ? { ...a, symbolMappings: newMappings } : a
+                                  )
+                                })
+                              }}
+                              placeholder="Source"
+                            />
+                            <span>→</span>
+                            <input
+                              type="text"
+                              className="input input-bordered input-sm w-28"
+                              value={mapping.targetSymbol}
+                              disabled={!mapping.isEditing}
+                              onChange={(e) => {
+                                const newMappings = [...account.symbolMappings]
+                                newMappings[index] = { ...mapping, targetSymbol: e.target.value }
+                                updateBot(bot.id, {
+                                  targetAccounts: bot.targetAccounts.map(a =>
+                                    a.id === account.id ? { ...a, symbolMappings: newMappings } : a
+                                  )
+                                })
+                              }}
+                              placeholder="Target"
+                            />
+                            <span>×</span>
+                            <input
+                              type="number"
+                              className="input input-bordered input-sm w-12"
+                              value={mapping.multiplier}
+                              disabled={!mapping.isEditing}
+                              onChange={(e) => {
+                                const newMappings = [...account.symbolMappings]
+                                newMappings[index] = { ...mapping, multiplier: parseFloat(e.target.value) || 1 }
+                                updateBot(bot.id, {
+                                  targetAccounts: bot.targetAccounts.map(a =>
+                                    a.id === account.id ? { ...a, symbolMappings: newMappings } : a
+                                  )
+                                })
+                              }}
+                              step="1"
+                            />
+                            <div className="space-x-1">
+                              {mapping.isEditing ? (
+                                <button
+                                  className="btn btn-success btn-sm btn-square"
+                                  onClick={() => handleSaveMapping(account.id, index)}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </button>
+                              ) : (
+                                <button
+                                  className="btn btn-info btn-sm btn-square"
+                                  onClick={() => handleEditMapping(account.id, index)}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                  </svg>
+                                </button>
+                              )}
+                              <button
+                                className="btn btn-error btn-sm btn-square"
+                                onClick={() => handleDeleteSymbolMapping(account.id, index)}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => handleAddSymbolMapping(account.id)}
+                        >
+                          + Add Mapping
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1002,6 +1198,43 @@ const Bots: React.FC = () => {
                   }}
                 >
                   Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-base-200 rounded-lg p-6 w-[400px]">
+            <h3 className="text-lg font-semibold mb-4">Change Password</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-base-content/70 mb-2">New Password</label>
+                <input
+                  type="password"
+                  className="input input-bordered w-full"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setShowPasswordModal(null)
+                    setNewPassword('')
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handleChangePassword(showPasswordModal)}
+                >
+                  Save Password
                 </button>
               </div>
             </div>

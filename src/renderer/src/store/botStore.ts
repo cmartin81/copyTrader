@@ -55,16 +55,20 @@ export const useBotStore = create<BotStore>((set, get) => ({
   },
   updateBot: async (id, updates) => {
     if (updates.targetAccounts) {
-      // Handle password encryption for target accounts
+      // Only encrypt passwords for accounts that have a new password
       const encryptedAccounts = await Promise.all(
         updates.targetAccounts.map(async (account) => {
-          if (account.credentials) {
-            const encryptedPassword = await window.electron.ipcRenderer.invoke('encrypt-password', account.credentials.password) as string
-            return {
-              ...account,
-              credentials: {
-                ...account.credentials,
-                password: encryptedPassword
+          if (account.credentials?.password) {
+            // Only encrypt if the password is different from the original
+            const originalAccount = get().bots.find(b => b.id === id)?.targetAccounts.find(a => a.id === account.id)
+            if (originalAccount?.credentials?.password !== account.credentials.password) {
+              const encryptedPassword = await window.electron.ipcRenderer.invoke('encrypt-password', account.credentials.password) as string
+              return {
+                ...account,
+                credentials: {
+                  ...account.credentials,
+                  password: encryptedPassword
+                }
               }
             }
           }
