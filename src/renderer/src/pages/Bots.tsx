@@ -460,6 +460,11 @@ const Bots: React.FC = () => {
       accountId: account.accountId,
       credentials: undefined
     })
+    
+    // Set the accounts data from the existing account
+    if (account.accounts) {
+      setAccounts(account.accounts)
+    }
   }
 
   const handleSaveAccount = async (accountId: string): Promise<void> => {
