@@ -37,12 +37,12 @@ const Bots: React.FC = () => {
   const [newPassword, setNewPassword] = useState('')
   const [editedAccount, setEditedAccount] = useState<Partial<Bot['targetAccounts'][0]>>({
     type: undefined,
-    account: '',
+    accountId: '',
     credentials: undefined
   })
   const [newTargetAccount, setNewTargetAccount] = useState<Partial<Bot['targetAccounts'][0]>>({
     type: undefined,
-    account: '',
+    accountId: '',
     credentials: {
       username: '',
       password: ''
@@ -230,7 +230,7 @@ const Bots: React.FC = () => {
   }
 
   const handleAddTargetAccount = async (): Promise<void> => {
-    if (newTargetAccount.type && newTargetAccount.account && newTargetAccount.credentials?.username && newTargetAccount.credentials?.password) {
+    if (newTargetAccount.type && newTargetAccount.accountId && newTargetAccount.credentials?.username && newTargetAccount.credentials?.password) {
       // Encrypt the password before saving
       const response = await window.electron.ipcRenderer.invoke('encrypt-password', newTargetAccount.credentials.password)
       let encryptedPassword: string | undefined
@@ -256,7 +256,7 @@ const Bots: React.FC = () => {
             {
               id: uuidv4(),
               type: newTargetAccount.type,
-              account: newTargetAccount.account,
+              accountId: newTargetAccount.accountId,
               credentials: {
                 username: newTargetAccount.credentials.username,
                 password: encryptedPassword
@@ -267,7 +267,7 @@ const Bots: React.FC = () => {
         })
         setNewTargetAccount({
           type: undefined,
-          account: '',
+          accountId: '',
           credentials: {
             username: '',
             password: ''
@@ -383,7 +383,7 @@ const Bots: React.FC = () => {
       const sampleAccounts = ['Account 1', 'Account 2']
       setNewTargetAccount(prev => ({
         ...prev,
-        account: ''
+        accountId: ''
       }))
       addLog('Account sync completed')
     } catch (error) {
@@ -438,13 +438,13 @@ const Bots: React.FC = () => {
     setEditingAccount(account.id)
     setEditedAccount({
       type: account.type,
-      account: account.account,
+      accountId: account.accountId,
       credentials: undefined
     })
   }
 
   const handleSaveAccount = async (accountId: string): Promise<void> => {
-    if (editedAccount.type && editedAccount.account) {
+    if (editedAccount.type && editedAccount.accountId) {
       const originalAccount = bot.targetAccounts.find(acc => acc.id === accountId)
       if (!originalAccount) return
 
@@ -455,7 +455,7 @@ const Bots: React.FC = () => {
             return {
               ...acc,
               type: editedAccount.type!,
-              account: editedAccount.account!
+              accountId: editedAccount.accountId!
               // Don't include credentials at all
             }
           }
@@ -465,7 +465,7 @@ const Bots: React.FC = () => {
       setEditingAccount(null)
       setEditedAccount({
         type: undefined,
-        account: '',
+        accountId: '',
         credentials: undefined
       })
       addLog(`Updated account: ${editedAccount.type}`)
@@ -790,12 +790,22 @@ const Bots: React.FC = () => {
                               <label className="block text-sm text-base-content/70 mb-2">Account</label>
                               <select
                                 className="select select-bordered w-full"
-                                value={newTargetAccount.account}
-                                onChange={(e) => setNewTargetAccount({ ...newTargetAccount, account: e.target.value })}
+                                value={newTargetAccount.accountId}
+                                onChange={(e) => {
+                                  const selectedAccount = bot.targetAccounts.find(acc => acc.id === e.target.value)?.accounts?.find(a => a.id.toString() === e.target.value)
+                                  setNewTargetAccount({ 
+                                    ...newTargetAccount, 
+                                    accountId: e.target.value,
+                                    accounts: selectedAccount ? [selectedAccount] : undefined
+                                  })
+                                }}
                               >
                                 <option value="">Select an account</option>
-                                <option value="Account 1">Account 1</option>
-                                <option value="Account 2">Account 2</option>
+                                {bot.targetAccounts.find(acc => acc.id === newTargetAccount.id)?.accounts?.map(account => (
+                                  <option key={account.id} value={account.id.toString()}>
+                                    {account.alias || account.name}
+                                  </option>
+                                ))}
                               </select>
                             </div>
                             <button
@@ -815,8 +825,8 @@ const Bots: React.FC = () => {
                             <input
                               type="text"
                               className="input input-bordered w-full"
-                              value={newTargetAccount.account}
-                              onChange={(e) => setNewTargetAccount({ ...newTargetAccount, account: e.target.value })}
+                              value={newTargetAccount.accountId}
+                              onChange={(e) => setNewTargetAccount({ ...newTargetAccount, accountId: e.target.value })}
                             />
                           </div>
                         )}
@@ -845,7 +855,7 @@ const Bots: React.FC = () => {
                   <div key={account.id} className="bg-base-200 rounded-lg p-4">
                     <div className="flex justify-between items-center mb-4">
                       <div>
-                        <h3 className="font-medium">{account.type} - {account.account}</h3>
+                        <h3 className="font-medium">{account.type} - {account.accountId}</h3>
                       </div>
                       <div className="flex gap-2">
                         <button
@@ -920,12 +930,22 @@ const Bots: React.FC = () => {
                                   <label className="block text-sm text-base-content/70 mb-2">Account</label>
                                   <select
                                     className="select select-bordered w-full"
-                                    value={editedAccount.account}
-                                    onChange={(e) => setEditedAccount({ ...editedAccount, account: e.target.value })}
+                                    value={editedAccount.accountId}
+                                    onChange={(e) => {
+                                      const selectedAccount = bot.targetAccounts.find(acc => acc.id === editingAccount)?.accounts?.find(a => a.id.toString() === e.target.value)
+                                      setEditedAccount({ 
+                                        ...editedAccount, 
+                                        accountId: e.target.value,
+                                        accounts: selectedAccount ? [selectedAccount] : undefined
+                                      })
+                                    }}
                                   >
                                     <option value="">Select an account</option>
-                                    <option value="Account 1">Account 1</option>
-                                    <option value="Account 2">Account 2</option>
+                                    {bot.targetAccounts.find(acc => acc.id === editingAccount)?.accounts?.map(account => (
+                                      <option key={account.id} value={account.id.toString()}>
+                                        {account.alias || account.name}
+                                      </option>
+                                    ))}
                                   </select>
                                 </div>
                                 <button
@@ -945,8 +965,8 @@ const Bots: React.FC = () => {
                                 <input
                                   type="text"
                                   className="input input-bordered w-full"
-                                  value={editedAccount.account}
-                                  onChange={(e) => setEditedAccount({ ...editedAccount, account: e.target.value })}
+                                  value={editedAccount.accountId}
+                                  onChange={(e) => setEditedAccount({ ...editedAccount, accountId: e.target.value })}
                                 />
                               </div>
                             )}
