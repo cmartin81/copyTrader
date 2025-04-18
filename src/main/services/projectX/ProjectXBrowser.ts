@@ -1,4 +1,4 @@
-import { AbstractTargetAccount, Account } from './abstractTargetAccount'
+import { AbstractTargetAccount, type Account as AbstractAccount } from './abstractTargetAccount'
 import { app, safeStorage } from 'electron'
 import pie from 'puppeteer-in-electron'
 import { Browser } from 'puppeteer-core'
@@ -28,6 +28,12 @@ export type PropFirm = keyof typeof PropFirmConfig
 interface PropConfig {
   url: string
   apiUrl: string
+}
+
+interface Account {
+  id: string;
+  name: string;
+  alias: string | null;
 }
 
 export class ProjectXBrowser extends AbstractTargetAccount {
@@ -101,7 +107,7 @@ export class ProjectXBrowser extends AbstractTargetAccount {
     return new ProjectXBrowser(browser, propFirm, username, password)
   }
 
-  async getAccounts(): Promise<[Account]> {
+  async getAccounts(): Promise<[AbstractAccount]> {
     const page = this.page!
     const response = await page.evaluate(async (apiUrl) => {
       const token = localStorage.getItem('token')
@@ -119,11 +125,11 @@ export class ProjectXBrowser extends AbstractTargetAccount {
     }, this.config.apiUrl)
 
     const accounts = _.map(response, (res) => ({
-      id: res.accountId,
+      id: String(res.accountId),
       name: res.accountName,
       alias: res.nickname
     }))
-    return accounts as [Account]
+    return accounts as [AbstractAccount]
   }
 
   /*

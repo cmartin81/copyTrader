@@ -50,6 +50,7 @@ const Bots: React.FC = () => {
     symbolMappings: []
   })
   const [isAddBotModalOpen, setIsAddBotModalOpen] = useState(false)
+  const [accounts, setAccounts] = useState<{ id: string; name: string; alias: string | null }[]>([])
 
   const avatarOptions = [
     // Trading & Finance
@@ -261,6 +262,7 @@ const Bots: React.FC = () => {
                 username: newTargetAccount.credentials.username,
                 password: encryptedPassword
               },
+              accounts: accounts,
               symbolMappings: []
             }
           ]
@@ -379,9 +381,9 @@ const Bots: React.FC = () => {
   const handleSyncAccounts = async (): Promise<void> => {
     try {
       addLog('Syncing TopstepX accounts...')
-      
+
       // Get the current account being edited or added
-      const currentAccount = editingAccount 
+      const currentAccount = editingAccount
         ? bot.targetAccounts.find(acc => acc.id === editingAccount)
         : newTargetAccount
 
@@ -396,12 +398,13 @@ const Bots: React.FC = () => {
         credentials: currentAccount.credentials
       })
 
-      console.log('Sync request sent with params:', {
-        type: currentAccount.type,
-        credentials: currentAccount.credentials
-      })
-
-      addLog('Account sync completed')
+      if (response.success) {
+        setAccounts(response.data)
+        addLog('Account sync completed')
+      } else {
+        addLog(`Error syncing accounts: ${response.error}`)
+        addAlert('error', `Error syncing accounts: ${response.error}`)
+      }
     } catch (error) {
       console.error('Error syncing accounts:', error)
       addLog(`Error syncing accounts: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -808,17 +811,17 @@ const Bots: React.FC = () => {
                                 className="select select-bordered w-full"
                                 value={newTargetAccount.accountId}
                                 onChange={(e) => {
-                                  const selectedAccount = bot.targetAccounts.find(acc => acc.id === e.target.value)?.accounts?.find(a => a.id.toString() === e.target.value)
-                                  setNewTargetAccount({ 
-                                    ...newTargetAccount, 
+                                  const selectedAccount = accounts.find(a => a.id === e.target.value)
+                                  setNewTargetAccount({
+                                    ...newTargetAccount,
                                     accountId: e.target.value,
                                     accounts: selectedAccount ? [selectedAccount] : undefined
                                   })
                                 }}
                               >
                                 <option value="">Select an account</option>
-                                {bot.targetAccounts.find(acc => acc.id === newTargetAccount.id)?.accounts?.map(account => (
-                                  <option key={account.id} value={account.id.toString()}>
+                                {accounts.map(account => (
+                                  <option key={account.id} value={account.id}>
                                     {account.alias || account.name}
                                   </option>
                                 ))}
@@ -948,17 +951,17 @@ const Bots: React.FC = () => {
                                     className="select select-bordered w-full"
                                     value={editedAccount.accountId}
                                     onChange={(e) => {
-                                      const selectedAccount = bot.targetAccounts.find(acc => acc.id === editingAccount)?.accounts?.find(a => a.id.toString() === e.target.value)
-                                      setEditedAccount({ 
-                                        ...editedAccount, 
+                                      const selectedAccount = accounts.find(a => a.id === e.target.value)
+                                      setEditedAccount({
+                                        ...editedAccount,
                                         accountId: e.target.value,
                                         accounts: selectedAccount ? [selectedAccount] : undefined
                                       })
                                     }}
                                   >
                                     <option value="">Select an account</option>
-                                    {bot.targetAccounts.find(acc => acc.id === editingAccount)?.accounts?.map(account => (
-                                      <option key={account.id} value={account.id.toString()}>
+                                    {accounts.map(account => (
+                                      <option key={account.id} value={account.id}>
                                         {account.alias || account.name}
                                       </option>
                                     ))}

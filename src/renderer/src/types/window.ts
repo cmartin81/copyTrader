@@ -13,7 +13,7 @@ export interface TargetAccount {
     password: string;
   };
   accounts?: {
-    id: number;
+    id: string;
     name: string;
     alias: string | null;
   }[];
@@ -23,4 +23,21 @@ export interface TargetAccount {
     multiplier: number;
     isEditing: boolean;
   }[];
+}
+
+declare global {
+  interface Window {
+    electron: {
+      ipcRenderer: {
+        invoke: (channel: string, ...args: any[]) => Promise<any>;
+        send: (channel: string, ...args: any[]) => void;
+        on: (channel: string, func: (...args: any[]) => void) => void;
+        removeListener: (channel: string, func: (...args: any[]) => void) => void;
+      };
+    };
+    store: {
+      get: (key: string) => any;
+      set: (key: string, value: any) => void;
+    };
+  }
 } 
