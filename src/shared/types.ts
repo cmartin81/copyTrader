@@ -12,7 +12,16 @@ export interface Bot {
   targetAccounts: {
     id: string
     type: 'TopstepX' | 'Bulenox' | 'TheFuturesDesk' | 'TickTickTrader'
-    account: string
+    accountId: string
+    credentials?: {
+      username: string
+      password: string
+    }
+    accounts?: {
+      id: number
+      name: string
+      alias: string | null
+    }[]
     symbolMappings: {
       sourceSymbol: string
       targetSymbol: string

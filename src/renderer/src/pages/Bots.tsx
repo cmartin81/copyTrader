@@ -379,12 +379,28 @@ const Bots: React.FC = () => {
   const handleSyncAccounts = async (): Promise<void> => {
     try {
       addLog('Syncing TopstepX accounts...')
-      // Add sample accounts to the dropdown
-      const sampleAccounts = ['Account 1', 'Account 2']
-      setNewTargetAccount(prev => ({
-        ...prev,
-        accountId: ''
-      }))
+      
+      // Get the current account being edited or added
+      const currentAccount = editingAccount 
+        ? bot.targetAccounts.find(acc => acc.id === editingAccount)
+        : newTargetAccount
+
+      if (!currentAccount?.type || !currentAccount.credentials) {
+        addLog('No account type or credentials found')
+        return
+      }
+
+      // Send request to main process
+      const response = await window.electron.ipcRenderer.invoke('getAccounts', {
+        type: currentAccount.type,
+        credentials: currentAccount.credentials
+      })
+
+      console.log('Sync request sent with params:', {
+        type: currentAccount.type,
+        credentials: currentAccount.credentials
+      })
+
       addLog('Account sync completed')
     } catch (error) {
       console.error('Error syncing accounts:', error)

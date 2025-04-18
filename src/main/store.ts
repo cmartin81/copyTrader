@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import Store from 'electron-store'
 import { AppState } from '../shared/types'
-import { broadcastState } from './index'
+import { broadcastState } from './utils/broadcastState'
 
 interface StoreSchema {
   appState: AppState
