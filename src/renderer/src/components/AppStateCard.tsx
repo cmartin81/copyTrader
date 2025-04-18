@@ -26,4 +26,4 @@ const AppStateCard: React.FC = () => {
   )
 }
 
-export default AppStateCard 
+export default AppStateCard

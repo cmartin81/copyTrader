@@ -82,9 +82,6 @@ function createWindow(): void {
       // Clear all bots from store
       setAppState({ ...getAppState(), bots: [] })
 
-      // Broadcast the updated state
-      broadcastState()
-
       return { success: true }
     } catch (error) {
       console.error('Error resetting settings:', error)
@@ -100,7 +97,6 @@ function createWindow(): void {
     const currentState = getAppState()
     setAppState({ ...currentState, bots })
     logToFile(`Bots updated: ${JSON.stringify(bots)}`)
-    broadcastState()
   })
 
   // Session counter handlers
@@ -122,7 +118,6 @@ function createWindow(): void {
     const newState = { ...currentState, appCounter: currentState.appCounter + 1 }
     setAppState(newState)
     logToFile(`App counter incremented to: ${newState.appCounter}`)
-    broadcastState()
   })
 
   ipcMain.on('decrement-app-counter', () => {
@@ -130,7 +125,6 @@ function createWindow(): void {
     const newState = { ...currentState, appCounter: currentState.appCounter - 1 }
     setAppState(newState)
     logToFile(`App counter decremented to: ${newState.appCounter}`)
-    broadcastState()
   })
 
   // Bot management handlers
@@ -156,7 +150,6 @@ function createWindow(): void {
       ...currentState,
       bots: [...currentState.bots, newBot]
     })
-    broadcastState()
   })
 
   ipcMain.on('update-bot-pnl', (event, { botId, pnl }) => {
@@ -168,7 +161,6 @@ function createWindow(): void {
       ...currentState,
       bots: updatedBots
     })
-    broadcastState()
   })
 
   ipcMain.on('remove-bot', (event, botId) => {
@@ -178,7 +170,6 @@ function createWindow(): void {
       ...currentState,
       bots: updatedBots
     })
-    broadcastState()
   })
 
   ipcMain.on('update-bot-status', (event, { botId, isActive }) => {
@@ -190,7 +181,6 @@ function createWindow(): void {
       ...currentState,
       bots: updatedBots
     })
-    broadcastState()
   })
 
   // Add handler for launching puppeteer
@@ -270,8 +260,6 @@ function createWindow(): void {
         setAppState(newState)
       }
 
-      // Broadcast the updates to the renderer
-      broadcastState()
     } catch (error) {
       console.error('Error in interval update:', error)
     }
@@ -279,7 +267,7 @@ function createWindow(): void {
 }
 
 // Function to broadcast state updates to renderer
-function broadcastState(): void {
+export function broadcastState(): void {
   if (mainWindow) {
     mainWindow.webContents.send('state-updated', sessionState, getAppState())
   }

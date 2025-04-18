@@ -225,9 +225,9 @@ const Bots: React.FC = () => {
     if (newTargetAccount.type && newTargetAccount.account && newTargetAccount.credentials?.username && newTargetAccount.credentials?.password) {
       // Encrypt the password before saving
       const response = await window.electron.ipcRenderer.invoke('encrypt-password', newTargetAccount.credentials.password)
-      
+
       let encryptedPassword: string | undefined
-      
+
       if (typeof response === 'string') {
         encryptedPassword = response
       } else if (isIpcResponse(response)) {
@@ -371,7 +371,7 @@ const Bots: React.FC = () => {
 
   const handleSyncAccounts = async (): Promise<void> => {
     try {
-      addLog('Syncing Topstepx accounts...')
+      addLog('Syncing TopstepX accounts...')
       // Add sample accounts to the dropdown
       const sampleAccounts = ['Account 1', 'Account 2']
       setNewTargetAccount(prev => ({
@@ -646,7 +646,7 @@ const Bots: React.FC = () => {
                         onChange={(e) => setNewTargetAccount({ ...newTargetAccount, type: e.target.value as Bot['targetAccounts'][0]['type'] })}
                       >
                         <option value="">Select account type</option>
-                        <option value="Topstepx">Topstepx</option>
+                        <option value="TopstepX">TopstepX</option>
                         <option value="Bulenox">Bulenox</option>
                         <option value="TheFuturesDesk">The Futures Desk</option>
                         <option value="TickTickTrader">TickTickTrader</option>
@@ -654,7 +654,7 @@ const Bots: React.FC = () => {
                     </div>
                     {newTargetAccount.type && (
                       <>
-                        {(newTargetAccount.type === 'Topstepx' || newTargetAccount.type === 'Bulenox' || newTargetAccount.type === 'TheFuturesDesk') && (
+                        {(newTargetAccount.type === 'TopstepX' || newTargetAccount.type === 'Bulenox' || newTargetAccount.type === 'TheFuturesDesk') && (
                           <div className="space-y-4">
                             <div>
                               <label className="block text-sm text-base-content/70 mb-2">Username</label>
@@ -688,7 +688,7 @@ const Bots: React.FC = () => {
                             </div>
                           </div>
                         )}
-                        {newTargetAccount.type === 'Topstepx' && (
+                        {newTargetAccount.type === 'TopstepX' && (
                           <div className="flex gap-2 items-end">
                             <div className="flex-1">
                               <label className="block text-sm text-base-content/70 mb-2">Account</label>
@@ -713,7 +713,7 @@ const Bots: React.FC = () => {
                             </button>
                           </div>
                         )}
-                        {newTargetAccount.type && newTargetAccount.type !== 'Topstepx' && (
+                        {newTargetAccount.type && newTargetAccount.type !== 'TopstepX' && (
                           <div>
                             <label className="block text-sm text-base-content/70 mb-2">Account ID</label>
                             <input

@@ -11,7 +11,7 @@ export interface Bot {
   avatar?: string
   targetAccounts: {
     id: string
-    type: 'Topstepx' | 'Bulenox' | 'TheFuturesDesk' | 'TickTickTrader'
+    type: 'TopstepX' | 'Bulenox' | 'TheFuturesDesk' | 'TickTickTrader'
     account: string
     symbolMappings: {
       sourceSymbol: string
@@ -41,4 +41,4 @@ export interface CounterActions {
   decrementSessionCounter: () => void
   incrementAppCounter: () => void
   decrementAppCounter: () => void
-} 
+}

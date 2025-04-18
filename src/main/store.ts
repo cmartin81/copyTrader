@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import Store from 'electron-store'
 import { AppState } from '../shared/types'
+import { broadcastState } from './index'
 
 interface StoreSchema {
   appState: AppState
@@ -24,6 +25,7 @@ export function getAppState(): AppState {
 
 export function setAppState(state: AppState): void {
   appStore.set('appState', state)
+  broadcastState()
 }
 
 export function updateAppCounter(value: number): void {
@@ -59,4 +61,4 @@ export function clearState(): void {
   appStore.clear()
 }
 
-export default appStore 
+export default appStore

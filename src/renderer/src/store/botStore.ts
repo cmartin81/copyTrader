@@ -21,7 +21,7 @@ export interface Bot {
   avatar?: string
   targetAccounts: {
     id: string
-    type: 'Topstepx' | 'Bulenox' | 'TheFuturesDesk' | 'TickTickTrader'
+    type: 'TopstepX' | 'Bulenox' | 'TheFuturesDesk' | 'TickTickTrader'
     account: string
     credentials?: {
       username: string
@@ -76,7 +76,7 @@ export const useBotStore = create<BotStore>((set, get) => ({
         targetAccounts: encryptedAccounts
       }
     }
-    
+
     set((state) => ({
       bots: state.bots.map((bot) =>
         bot.id === id ? { ...bot, ...updates } : bot
@@ -104,4 +104,4 @@ export const useBotStore = create<BotStore>((set, get) => ({
     }))
     window.electron.ipcRenderer.send('set-bots', get().bots)
   }
-})) 
+}))

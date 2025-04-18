@@ -4,6 +4,12 @@ import { Browser, Page } from 'puppeteer-core'
 // @ts-ignore: ...
 // import { default as PQueue } from "p-queue";
 
+export interface Account {
+  id: string;
+  name: string;
+  alias: string | null;
+}
+
 export abstract class AbstractTargetAccount {
   browser: Browser
   puppeteerBrowser: BrowserWindow
@@ -18,8 +24,8 @@ export abstract class AbstractTargetAccount {
   constructor(browser: Browser, exchangeName, storeName, appStoreName, exchangeUrl) {
     this.browser = browser
     this.puppeteerBrowser = new BrowserWindow({
-      width: 1200,
-      height: 800,
+      width: 800,
+      height: 600,
       // show: false,
       webPreferences: {backgroundThrottling: false}})
     this.exchangeName = exchangeName
@@ -31,10 +37,25 @@ export abstract class AbstractTargetAccount {
 
 
   abstract start()
-  // abstract getAccounts()
+  abstract getAccounts(): Promise<[Account]>
   // abstract getSymbolMappings()
   // abstract setSymbolMapping(sourceSymbol:string, targetSymbol:string)
   // abstract addSymbol(newSymbol:string)
   // abstract placeOrder(targetSymbol:string, amount:number)
   // abstract stop()
+
+  async closeBrowser() {
+    try {
+      this.puppeteerBrowser?.close()
+    } catch (e) {
+      console.log(e)
+    }
+    const mainWindow = AppState.getMainWindow()
+
+    mainWindow!.webContents.send(this.storeName, {
+      method: 'setIsBotRunning',
+      parameters: [false],
+    })
+
+  }
 }

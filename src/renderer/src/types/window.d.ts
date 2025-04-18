@@ -19,7 +19,7 @@ interface Bot {
   avatar?: string
   targetAccounts: {
     id: string
-    type: 'Topstepx' | 'Bulenox' | 'TheFuturesDesk' | 'TickTickTrader'
+    type: 'TopstepX' | 'Bulenox' | 'TheFuturesDesk' | 'TickTickTrader'
     account: string
     credentials?: {
       username: string
@@ -88,4 +88,4 @@ declare global {
     electron: ElectronAPI
     store: StoreAPI
   }
-} 
+}
