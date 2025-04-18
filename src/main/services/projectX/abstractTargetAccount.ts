@@ -1,5 +1,6 @@
+import { Browser } from 'puppeteer-core'
 import { BrowserWindow } from 'electron'
-import { Browser, Page } from 'puppeteer-core'
+import { Page } from 'puppeteer-core'
 
 // @ts-ignore: ...
 // import { default as PQueue } from "p-queue";
@@ -36,7 +37,7 @@ export abstract class AbstractTargetAccount {
   }
 
 
-  abstract start()
+  abstract start(): Promise<boolean>
   abstract getAccounts(): Promise<[Account]>
   // abstract getSymbolMappings()
   // abstract setSymbolMapping(sourceSymbol:string, targetSymbol:string)
@@ -46,16 +47,32 @@ export abstract class AbstractTargetAccount {
 
   async closeBrowser() {
     try {
-      this.puppeteerBrowser?.close()
+      // Close the page if it exists
+      if (this.page) {
+        await this.page.close().catch(e => console.log('Error closing page:', e))
+        this.page = undefined
+      }
+
+      // Close the browser window
+      if (this.puppeteerBrowser) {
+        this.puppeteerBrowser.close()
+      }
+
+      // Disconnect from Puppeteer
+      if (this.browser) {
+        await this.browser.disconnect().catch(e => console.log('Error disconnecting browser:', e))
+      }
+
+      // Notify the main window that the bot is no longer running
+      const mainWindow = BrowserWindow.getAllWindows()[0]
+      if (mainWindow) {
+        mainWindow.webContents.send(this.storeName, {
+          method: 'setIsBotRunning',
+          parameters: [false],
+        })
+      }
     } catch (e) {
-      console.log(e)
+      console.error('Error in closeBrowser:', e)
     }
-    const mainWindow = AppState.getMainWindow()
-
-    mainWindow!.webContents.send(this.storeName, {
-      method: 'setIsBotRunning',
-      parameters: [false],
-    })
-
   }
 }

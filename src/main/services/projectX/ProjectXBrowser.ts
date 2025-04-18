@@ -3,6 +3,7 @@ import { app, safeStorage } from 'electron'
 import pie from 'puppeteer-in-electron'
 import { Browser } from 'puppeteer-core'
 import _ from 'lodash'
+import { waitMs } from '../../utils'
 const puppeteer = require('puppeteer-core')
 
 export const PropFirmConfig = {
@@ -31,9 +32,9 @@ interface PropConfig {
 }
 
 interface Account {
-  id: string;
-  name: string;
-  alias: string | null;
+  id: string
+  name: string
+  alias: string | null
 }
 
 export class ProjectXBrowser extends AbstractTargetAccount {
@@ -67,14 +68,58 @@ export class ProjectXBrowser extends AbstractTargetAccount {
   //   return safeStorage.decryptString(retrievedEncryptedBuffer)
   // }
 
-  async start(): Promise<void> {
+  async isLoginPageDisplayed(): Promise<boolean> {
+    const page = this.page!
+    try {
+      // Use Promise.race to wait for either condition
+      const result = await Promise.race([
+        // Wait for login page URL or login form elements
+        page
+          .waitForSelector('[name="userName"]', { timeout: 10000 })
+          .then(() => true)
+          .catch(() => false),
+        // Wait for Trading element (logged in)
+        page
+          .waitForSelector('[aria-label="Trading"]', { timeout: 10000 })
+          .then(() => false)
+          .catch(() => true)
+      ])
+
+      return result
+    } catch (error) {
+      console.error('Error checking login page status:', error)
+      return true // Default to login page if there's an error
+    }
+  }
+
+  async start(): Promise<boolean> {
     await this.openBrowser()
-    if (this.username && this.password) {
-      console.log('login...')
-      /*        await this.page!.waitForNavigation()
-        await waitMs(300)
-        await this.login(this.username, this.password)
-  */
+    const isLoginPageDisplayed = await this.isLoginPageDisplayed()
+    if (isLoginPageDisplayed && this.username && this.password) {
+      const loginSuccesfully = await this.login(this.username, this.password)
+      return loginSuccesfully
+    }
+    return true
+  }
+
+  private async login(username: string, password: string) {
+    const page = this.page!
+
+    const usernameSelector = '[name="userName"]'
+    const passwordSelector = '[name="password"]'
+    await page.waitForSelector(usernameSelector)
+    await page.type(usernameSelector, username, { delay: 50 })
+    await page.waitForSelector(passwordSelector)
+    await page.type(passwordSelector, password, { delay: 50 })
+
+    const buttons = await page.$$('form button') // Get all buttons inside forms
+    await buttons[buttons.length - 1].click()
+
+    try {
+      await page.waitForSelector('[aria-label="Trading"]', { timeout: 10000 })
+      return true
+    } catch (_error) {
+      return false
     }
   }
 
