@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import { AppState, SessionState } from '../shared/types'
+import { StoreAPI } from '../types/window'
 
 interface Bot {
   id: string
@@ -16,93 +17,52 @@ interface StateUpdate {
 }
 
 // Custom APIs for renderer
-const api = {
-  // Store methods
-  getAppState: (): AppState => {
-    return ipcRenderer.sendSync('store-send', { action: 'get', key: 'appState' })
-  },
-  
-  setAppState: (state: AppState): void => {
-    ipcRenderer.sendSync('store-send', { action: 'set', key: 'appState', value: state })
-  },
-  
-  getSessionState: (): SessionState => {
-    return ipcRenderer.sendSync('store-send', { action: 'get', key: 'sessionState' })
-  },
-  
-  setSessionState: (state: SessionState): void => {
-    ipcRenderer.sendSync('store-send', { action: 'set', key: 'sessionState', value: state })
-  },
+const api: StoreAPI = {
+  // App state methods
+  getAppState: () => ipcRenderer.invoke('get-app-state'),
+  setAppState: (state) => ipcRenderer.invoke('set-app-state', state),
+
+  // Session state methods
+  getSessionState: () => ipcRenderer.invoke('get-session-state'),
+  setSessionState: (state) => ipcRenderer.invoke('set-session-state', state),
 
   // Bot management methods
-  setBots: (bots: Bot[]): void => {
-    ipcRenderer.send('set-bots', bots)
-  },
+  getBots: () => ipcRenderer.invoke('get-bots'),
+  setBots: (bots) => ipcRenderer.invoke('set-bots', bots),
+  updateBot: (botId, updates) => ipcRenderer.invoke('update-bot', botId, updates),
+  deleteBot: (botId) => ipcRenderer.invoke('delete-bot', botId),
 
   // State listeners
-  onAppStateUpdate: (callback: (state: AppState) => void): void => {
-    ipcRenderer.on('app-state-updated', (_event, state) => {
-      callback(state)
-    })
-  },
-
-  onSessionStateUpdate: (callback: (state: SessionState) => void): void => {
-    ipcRenderer.on('session-state-updated', (_event, state) => {
-      callback(state)
-    })
+  onAppStateUpdate: (callback) => {
+    const subscription = (event: any, state: any) => callback(state)
+    ipcRenderer.on('app-state-updated', subscription)
+    return () => {
+      ipcRenderer.removeListener('app-state-updated', subscription)
+    }
   },
 
   // Session counter methods
-  incrementSessionCounter: (): void => {
-    ipcRenderer.send('increment-session-counter')
-  },
-  decrementSessionCounter: (): void => {
-    ipcRenderer.send('decrement-session-counter')
-  },
-  incrementAppCounter: (): void => {
-    ipcRenderer.send('increment-app-counter')
-  },
-  decrementAppCounter: (): void => {
-    ipcRenderer.send('decrement-app-counter')
-  },
+  incrementSessionCounter: () => ipcRenderer.invoke('increment-session-counter'),
+  decrementSessionCounter: () => ipcRenderer.invoke('decrement-session-counter'),
+  getSessionCounter: () => ipcRenderer.invoke('get-session-counter'),
 
-  // State listeners
-  onStateUpdate: (callback: (sessionState: SessionState, appState: AppState, bots: Bot[]) => void): void => {
-    ipcRenderer.on('state-updated', (_event, sessionState, appState, bots) => {
-      callback(sessionState, appState, bots)
-    })
-  },
+  // Security methods
+  encryptPassword: (password) => ipcRenderer.invoke('encrypt-password', password),
+  decryptPassword: (encryptedPassword) => ipcRenderer.invoke('decrypt-password', encryptedPassword),
 
-  // Initial state request
-  getInitialState: (): Promise<StateUpdate> => {
-    return ipcRenderer.invoke('get-initial-state')
-  },
-
-  // Logs directory methods
-  openLogsDirectory: (): void => {
-    ipcRenderer.send('open-logs-directory')
-  }
+  // Logs directory
+  openLogsDirectory: () => ipcRenderer.invoke('open-logs-directory')
 }
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
+// Expose protected methods that allow the renderer process to use
+// the ipcRenderer without exposing the entire object
 if (process.contextIsolated) {
   try {
-    contextBridge.exposeInMainWorld('electron', {
-      ...electronAPI,
-      isDev: process.env.NODE_ENV === 'development'
-    })
     contextBridge.exposeInMainWorld('store', api)
   } catch (error) {
     console.error(error)
   }
 } else {
-  // @ts-ignore (define in dts)
-  window.electron = {
-    ...electronAPI,
-    isDev: process.env.NODE_ENV === 'development'
-  }
   // @ts-ignore (define in dts)
   window.store = api
 }

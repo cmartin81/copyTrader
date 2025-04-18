@@ -1,9 +1,10 @@
-import { AbstractTargetAccount, Account } from './abstractTargetAccount'
-import { app, safeStorage } from 'electron'
-import pie from 'puppeteer-in-electron'
 import { Browser } from 'puppeteer-core'
+import { AbstractTargetAccount, Account } from './abstractTargetAccount'
+import { safeStorage, app } from 'electron'
+import pie from 'puppeteer-in-electron'
+import * as puppeteer from 'puppeteer-core'
 import _ from 'lodash'
-const puppeteer = require('puppeteer-core')
+import { ipcMain } from 'electron'
 
 export const PropFirmConfig = {
   TopstepX: {
@@ -23,6 +24,7 @@ export const PropFirmConfig = {
     apiUrl: 'https://userapi.bulenox.projectx.com'
   }
 } as const
+
 export type PropFirm = keyof typeof PropFirmConfig
 
 interface PropConfig {
@@ -50,15 +52,21 @@ export class ProjectXBrowser extends AbstractTargetAccount {
     this.config = PropFirmConfig[propfirm] as PropConfig
 
     this.username = username
-    this.password = password ? this.decryptPassword(password) : null
+    this.password = password
     this.config = PropFirmConfig[propfirm]
-
-    //    this.apiUrl =  config.exchanges[this.exchangeName].apiUrl
   }
 
-  private decryptPassword(encryptedPassword: string): string {
-    const retrievedEncryptedBuffer = Buffer.from(encryptedPassword, 'base64')
-    return safeStorage.decryptString(retrievedEncryptedBuffer)
+  private async decryptPassword(encryptedPassword: string): Promise<string> {
+    try {
+      const response = await ipcMain.invoke('decrypt-password', encryptedPassword)
+      if (response.success) {
+        return response.data
+      }
+      throw new Error(response.error || 'Failed to decrypt password')
+    } catch (error) {
+      console.error('Error decrypting password:', error)
+      throw new Error('Failed to decrypt password')
+    }
   }
 
   async start(): Promise<void> {
@@ -73,6 +81,9 @@ export class ProjectXBrowser extends AbstractTargetAccount {
   }
 
   async openBrowser(): Promise<void> {
+    if (!this.puppeteerBrowser) {
+      throw new Error('Puppeteer browser not initialized')
+    }
     await this.puppeteerBrowser.loadURL(this.exchangeUrl)
     console.log('openBrowser')
     this.page = await pie.getPage(this.browser, this.puppeteerBrowser)
@@ -102,8 +113,10 @@ export class ProjectXBrowser extends AbstractTargetAccount {
   }
 
   async getAccounts(): Promise<[Account]> {
-    const page = this.page!
-    const response = await page.evaluate(async (apiUrl) => {
+    if (!this.page) {
+      throw new Error('Page not initialized')
+    }
+    const response = await this.page.evaluate(async (apiUrl) => {
       const token = localStorage.getItem('token')
       if (!token) throw new Error('Token not found in localStorage')
 

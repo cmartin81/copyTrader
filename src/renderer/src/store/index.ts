@@ -8,13 +8,21 @@ export const useAppStore = create<AppState>((set, get) => ({
   bots: [],
   setAppCounter: (value: number) => {
     const currentState = get()
-    set({ ...currentState, appCounter: value })
-    window.store.setAppState({ ...currentState, appCounter: value })
+    const newState = { ...currentState, appCounter: value }
+    set(newState)
+    // Only sync with main process if store is initialized
+    if (window.store) {
+      window.store.setAppState(newState)
+    }
   },
   setBots: (bots) => {
     const currentState = get()
-    set({ ...currentState, bots })
-    window.store.setAppState({ ...currentState, bots })
+    const newState = { ...currentState, bots }
+    set(newState)
+    // Only sync with main process if store is initialized
+    if (window.store) {
+      window.store.setAppState(newState)
+    }
   }
 }))
 
@@ -22,14 +30,27 @@ export const useAppStore = create<AppState>((set, get) => ({
 export const useSessionStore = create<SessionState>((set) => ({
   sessionCounter: 0,
   setSessionCounter: (value: number) => {
-    set({ sessionCounter: value })
-    window.store.setSessionState({ sessionCounter: value })
+    const newState = { sessionCounter: value }
+    set(newState)
+    // Only sync with main process if store is initialized
+    if (window.store) {
+      window.store.setSessionState(newState)
+    }
   }
 }))
 
 // Initialize stores and setup listeners
 export const initializeStores = async (): Promise<void> => {
   try {
+    // Wait for window.store to be available
+    if (!window.store) {
+      console.warn('window.store not available yet, waiting...')
+      await new Promise(resolve => setTimeout(resolve, 100))
+      if (!window.store) {
+        throw new Error('window.store not available after waiting')
+      }
+    }
+
     // Get initial states
     const initialState = await window.store.getInitialState()
     const { appState, sessionState } = initialState
@@ -54,7 +75,10 @@ export const initializeStores = async (): Promise<void> => {
       useAppStore.setState(appState)
       useBotStore.setState({ bots: appState.bots || [] })
     })
+
+    console.log('Stores initialized successfully')
   } catch (error) {
     console.error('Failed to initialize stores:', error)
+    throw error
   }
 } 

@@ -1,5 +1,8 @@
+import { Browser } from 'puppeteer-core'
 import { BrowserWindow } from 'electron'
-import { Browser, Page } from 'puppeteer-core'
+import { Page } from 'puppeteer-core'
+import { AppState } from '../../../shared/types'
+import { broadcastState } from '../../utils/broadcastState'
 
 // @ts-ignore: ...
 // import { default as PQueue } from "p-queue";
@@ -50,12 +53,11 @@ export abstract class AbstractTargetAccount {
     } catch (e) {
       console.log(e)
     }
-    const mainWindow = AppState.getMainWindow()
-
-    mainWindow!.webContents.send(this.storeName, {
-      method: 'setIsBotRunning',
-      parameters: [false],
-    })
-
+    
+    try {
+      broadcastState()
+    } catch (e) {
+      console.error('Error broadcasting state:', e)
+    }
   }
 }

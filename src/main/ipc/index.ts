@@ -6,6 +6,7 @@ import { setupCounterHandlers } from './counterHandlers'
 import { setupPuppeteerHandlers } from './puppeteerHandlers'
 import { setupAccountHandlers } from './accountHandlers'
 import { setupLogHandlers } from './logHandlers'
+import { setupSecurityHandlers } from './securityHandlers'
 
 export function setupAllIpcHandlers(
   sessionState: SessionState,
@@ -18,4 +19,5 @@ export function setupAllIpcHandlers(
   setupPuppeteerHandlers(activeBrowsers)
   setupAccountHandlers()
   setupLogHandlers()
+  setupSecurityHandlers()
 } 

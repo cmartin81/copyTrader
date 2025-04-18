@@ -51,66 +51,100 @@ interface BotStore {
   updateBotPnl: (id: string, pnl: number) => Promise<void>
 }
 
+// Helper function to sync bots with main process
+const syncBotsWithMain = async (bots: Bot[]): Promise<void> => {
+  try {
+    await window.store.setBots(bots)
+  } catch (error) {
+    console.error('Failed to sync bots with main process:', error)
+  }
+}
+
 export const useBotStore = create<BotStore>((set, get) => ({
   bots: [],
   addBot: async (bot) => {
-    const newBot = { ...bot, id: uuidv4() }
-    set((state) => ({ bots: [...state.bots, newBot] }))
-    window.electron.ipcRenderer.send('set-bots', get().bots)
+    try {
+      const newBot = { ...bot, id: uuidv4() }
+      set((state) => ({ bots: [...state.bots, newBot] }))
+      await syncBotsWithMain(get().bots)
+    } catch (error) {
+      console.error('Failed to add bot:', error)
+      throw error
+    }
   },
   updateBot: async (id, updates) => {
-    if (updates.targetAccounts) {
-      // Only encrypt passwords for accounts that have a new password
-      const encryptedAccounts = await Promise.all(
-        updates.targetAccounts.map(async (account) => {
-          if (account.credentials?.password) {
-            // Only encrypt if the password is different from the original
-            const originalAccount = get().bots.find(b => b.id === id)?.targetAccounts.find(a => a.id === account.id)
-            if (originalAccount?.credentials?.password !== account.credentials.password) {
-              const encryptedPassword = await window.electron.ipcRenderer.invoke('encrypt-password', account.credentials.password) as string
-              return {
-                ...account,
-                credentials: {
-                  ...account.credentials,
-                  password: encryptedPassword
+    try {
+      if (updates.targetAccounts) {
+        // Only encrypt passwords for accounts that have a new password
+        const encryptedAccounts = await Promise.all(
+          updates.targetAccounts.map(async (account) => {
+            if (account.credentials?.password) {
+              // Only encrypt if the password is different from the original
+              const originalAccount = get().bots.find(b => b.id === id)?.targetAccounts.find(a => a.id === account.id)
+              if (originalAccount?.credentials?.password !== account.credentials.password) {
+                const encryptedPassword = await window.store.encryptPassword(account.credentials.password)
+                return {
+                  ...account,
+                  credentials: {
+                    ...account.credentials,
+                    password: encryptedPassword
+                  }
                 }
               }
             }
-          }
-          return account
-        })
-      )
-      updates = {
-        ...updates,
-        targetAccounts: encryptedAccounts
+            return account
+          })
+        )
+        updates = {
+          ...updates,
+          targetAccounts: encryptedAccounts
+        }
       }
-    }
 
-    set((state) => ({
-      bots: state.bots.map((bot) =>
-        bot.id === id ? { ...bot, ...updates } : bot
-      )
-    }))
-    window.electron.ipcRenderer.send('set-bots', get().bots)
+      set((state) => ({
+        bots: state.bots.map((bot) =>
+          bot.id === id ? { ...bot, ...updates } : bot
+        )
+      }))
+      await syncBotsWithMain(get().bots)
+    } catch (error) {
+      console.error('Failed to update bot:', error)
+      throw error
+    }
   },
   deleteBot: async (id) => {
-    set((state) => ({ bots: state.bots.filter((bot) => bot.id !== id) }))
-    window.electron.ipcRenderer.send('set-bots', get().bots)
+    try {
+      set((state) => ({ bots: state.bots.filter((bot) => bot.id !== id) }))
+      await syncBotsWithMain(get().bots)
+    } catch (error) {
+      console.error('Failed to delete bot:', error)
+      throw error
+    }
   },
   toggleBot: async (id) => {
-    set((state) => ({
-      bots: state.bots.map((bot) =>
-        bot.id === id ? { ...bot, isRunning: !bot.isRunning } : bot
-      )
-    }))
-    window.electron.ipcRenderer.send('set-bots', get().bots)
+    try {
+      set((state) => ({
+        bots: state.bots.map((bot) =>
+          bot.id === id ? { ...bot, isRunning: !bot.isRunning } : bot
+        )
+      }))
+      await syncBotsWithMain(get().bots)
+    } catch (error) {
+      console.error('Failed to toggle bot:', error)
+      throw error
+    }
   },
   updateBotPnl: async (id, pnl) => {
-    set((state) => ({
-      bots: state.bots.map((bot) =>
-        bot.id === id ? { ...bot, pnl } : bot
-      )
-    }))
-    window.electron.ipcRenderer.send('set-bots', get().bots)
+    try {
+      set((state) => ({
+        bots: state.bots.map((bot) =>
+          bot.id === id ? { ...bot, pnl } : bot
+        )
+      }))
+      await syncBotsWithMain(get().bots)
+    } catch (error) {
+      console.error('Failed to update bot PNL:', error)
+      throw error
+    }
   }
 }))

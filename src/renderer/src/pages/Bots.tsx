@@ -20,6 +20,15 @@ const Bots: React.FC = () => {
   const { addAlert } = useSessionStore()
   const bot = bots.find(b => b.id === botId)
 
+  // Show loading if bot is not found
+  if (!bot) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-base-300">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
+      </div>
+    )
+  }
+
   const [logs, setLogs] = useState<string[]>([])
   const [logSize, setLogSize] = useState<LogSize>('normal')
   const [isTailing, setIsTailing] = useState(true)
@@ -115,10 +124,6 @@ const Bots: React.FC = () => {
       window.electron.ipcRenderer.removeAllListeners('app-state-updated')
     }
   }, [botId, updateBotPnl])
-
-  if (!bot) {
-    return null
-  }
 
   const handleDeleteBot = (): void => {
     if (window.confirm(`Are you sure you want to delete the bot "${bot.name}"?`)) {
@@ -229,54 +234,235 @@ const Bots: React.FC = () => {
     }
   }
 
-  const handleAddTargetAccount = async (): Promise<void> => {
-    if (newTargetAccount.type && newTargetAccount.accountId && newTargetAccount.credentials?.username && newTargetAccount.credentials?.password) {
-      // Encrypt the password before saving
-      const response = await window.electron.ipcRenderer.invoke('encrypt-password', newTargetAccount.credentials.password)
-      let encryptedPassword: string | undefined
+  const handleSyncAccounts = async (): Promise<void> => {
+    try {
+      addLog('Syncing TopstepX accounts...')
+      
+      // Get the current account being edited or added
+      const currentAccount = editingAccount 
+        ? bot.targetAccounts.find(acc => acc.id === editingAccount)
+        : newTargetAccount
 
-      if (typeof response === 'string') {
-        encryptedPassword = response
-      } else if (isIpcResponse(response)) {
-        if (response.success) {
-          encryptedPassword = response.data as string
-        } else {
-          addLog(`Error encrypting password: ${response.error || 'Unknown error'}`)
-          return
-        }
-      } else {
-        addLog('Error encrypting password: Invalid response type')
+      if (!currentAccount?.type || !currentAccount.credentials) {
+        addLog('No account type or credentials found')
         return
       }
 
-      if (encryptedPassword) {
-        updateBot(bot.id, {
-          targetAccounts: [
-            ...bot.targetAccounts,
-            {
-              id: uuidv4(),
-              type: newTargetAccount.type,
-              accountId: newTargetAccount.accountId,
-              credentials: {
-                username: newTargetAccount.credentials.username,
-                password: encryptedPassword
-              },
-              symbolMappings: []
-            }
-          ]
-        })
-        setNewTargetAccount({
-          type: undefined,
-          accountId: '',
-          credentials: {
-            username: '',
-            password: ''
-          },
-          symbolMappings: []
-        })
-        setShowAddTarget(false)
-        addLog(`Added new target account: ${newTargetAccount.type}`)
+      // Send request to main process
+      const response = await window.electron.ipcRenderer.invoke('getAccounts', {
+        type: currentAccount.type,
+        credentials: {
+          username: currentAccount.credentials.username,
+          password: currentAccount.credentials.password
+        }
+      })
+
+      if (response.success) {
+        const accounts = response.data
+        addLog(`Found ${accounts.length} accounts`)
+        
+        if (editingAccount) {
+          // Update existing account
+          updateBot(bot.id, {
+            targetAccounts: bot.targetAccounts.map(acc => {
+              if (acc.id === editingAccount) {
+                return {
+                  ...acc,
+                  accounts: accounts,
+                  // If no account is selected yet, select the first one
+                  accountId: acc.accountId || (accounts[0]?.id?.toString() || '')
+                }
+              }
+              return acc
+            })
+          })
+        } else {
+          // Update new account being added
+          setNewTargetAccount(prev => ({
+            ...prev,
+            accounts: accounts,
+            // If no account is selected yet, select the first one
+            accountId: prev.accountId || (accounts[0]?.id?.toString() || '')
+          }))
+        }
+        addLog('Account sync completed successfully')
+      } else {
+        addLog(`Error syncing accounts: ${response.error}`)
+        addAlert('error', `Error syncing accounts: ${response.error}`)
       }
+    } catch (error) {
+      console.error('Error syncing accounts:', error)
+      addLog(`Error syncing accounts: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      addAlert('error', `Error syncing accounts: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  const handleAddTargetAccount = async (): Promise<void> => {
+    console.log('[Bots] Starting handleAddTargetAccount')
+    
+    if (!newTargetAccount.type || !newTargetAccount.credentials?.username || !newTargetAccount.credentials?.password) {
+      console.log('[Bots] Missing required fields:', {
+        type: newTargetAccount.type,
+        hasUsername: !!newTargetAccount.credentials?.username,
+        hasPassword: !!newTargetAccount.credentials?.password
+      })
+      addLog('Please fill in all required fields')
+      addAlert('error', 'Please fill in all required fields')
+      return
+    }
+
+    try {
+      console.log('[Bots] Checking accounts data')
+      if (!newTargetAccount.accounts || newTargetAccount.accounts.length === 0) {
+        console.log('[Bots] No accounts found')
+        addLog('No accounts found. Please sync accounts first.')
+        addAlert('error', 'No accounts found. Please sync accounts first.')
+        return
+      }
+
+      // Find the selected account from the existing accounts data
+      console.log('[Bots] Finding selected account')
+      const selectedAccount = newTargetAccount.accountId 
+        ? newTargetAccount.accounts.find(acc => acc.id.toString() === newTargetAccount.accountId)
+        : newTargetAccount.accounts[0]
+
+      if (!selectedAccount) {
+        console.log('[Bots] Selected account not found')
+        addLog('Selected account not found in accounts list')
+        addAlert('error', 'Selected account not found. Please try syncing again.')
+        return
+      }
+
+      // Encrypt the password before saving
+      console.log('[Bots] Starting password encryption')
+      let encryptedPassword: string
+      try {
+        console.log('[Bots] Calling window.store.encryptPassword')
+        const response = await window.store.encryptPassword(newTargetAccount.credentials.password)
+        if (typeof response === 'string') {
+          encryptedPassword = response
+        } else if (response.success) {
+          encryptedPassword = response.data
+        } else {
+          throw new Error(response.error || 'Failed to encrypt password')
+        }
+        console.log('[Bots] Password encryption completed, length:', encryptedPassword.length)
+      } catch (error) {
+        console.error('[Bots] Error in password encryption:', error)
+        console.error('[Bots] Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+        addLog(`Error encrypting password: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        addAlert('error', 'Error encrypting password')
+        return
+      }
+
+      // Create the new target account with all accounts data
+      console.log('[Bots] Creating new account object')
+      const newAccount = {
+        id: uuidv4(),
+        type: newTargetAccount.type,
+        accountId: selectedAccount.id.toString(),
+        credentials: {
+          username: newTargetAccount.credentials.username,
+          password: encryptedPassword
+        },
+        accounts: newTargetAccount.accounts,
+        symbolMappings: []
+      }
+
+      // Get current app state and update it
+      console.log('[Bots] Getting current app state')
+      const currentAppState = window.store.getAppState()
+      console.log('[Bots] Current app state retrieved:', {
+        hasBots: !!currentAppState.bots,
+        botCount: currentAppState.bots?.length,
+        targetBot: currentAppState.bots?.find(b => b.id === bot.id)
+      })
+
+      console.log('[Bots] Updating bots array')
+      const updatedBots = currentAppState.bots.map(b => {
+        console.log('[Bots] Processing bot:', { id: b.id, matchesTarget: b.id === bot.id })
+        if (b.id === bot.id) {
+          const updatedBot = {
+            ...b,
+            targetAccounts: [...b.targetAccounts, newAccount]
+          }
+          console.log('[Bots] Updated bot:', {
+            id: updatedBot.id,
+            targetAccountCount: updatedBot.targetAccounts.length
+          })
+          return updatedBot
+        }
+        return b
+      })
+      console.log('[Bots] Bots array updated, new length:', updatedBots.length)
+
+      console.log('[Bots] Setting new app state')
+      window.store.setAppState({
+        ...currentAppState,
+        bots: updatedBots
+      })
+      console.log('[Bots] App state updated successfully')
+
+      // Reset the form
+      console.log('[Bots] Resetting form')
+      setNewTargetAccount({
+        type: undefined,
+        accountId: '',
+        credentials: {
+          username: '',
+          password: ''
+        },
+        symbolMappings: []
+      })
+      setShowAddTarget(false)
+      console.log('[Bots] Account addition completed successfully')
+      addLog(`Added new target account: ${newTargetAccount.type} - ${selectedAccount.alias || selectedAccount.name}`)
+    } catch (error) {
+      console.error('[Bots] Error in handleAddTargetAccount:', error)
+      console.error('[Bots] Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+      addLog(`Error adding target account: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      addAlert('error', `Error adding target account: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  const renderCredentialsForm = (): JSX.Element => {
+    switch (bot.masterAccount.connectionType) {
+      case 'MT4':
+      case 'MT5':
+      case 'cTrader':
+        return (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Username</label>
+              <input
+                type="text"
+                value={bot.masterAccount.credentials.username}
+                onChange={(e) => handleMasterAccountCredentialsChange('username', e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Password</label>
+              <input
+                type="password"
+                value={bot.masterAccount.credentials.password}
+                onChange={(e) => handleMasterAccountCredentialsChange('password', e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Server</label>
+              <input
+                type="text"
+                value={bot.masterAccount.credentials.server || ''}
+                onChange={(e) => handleMasterAccountCredentialsChange('server', e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              />
+            </div>
+          </div>
+        )
+      default:
+        return <div>Unsupported connection type</div>
     }
   }
 
@@ -374,80 +560,6 @@ const Bots: React.FC = () => {
     addLog(`Test ${side} order for ${testSymbol} on account ${accountId}`)
     setShowTestMenu(null)
     setTestSymbol('')
-  }
-
-  const handleSyncAccounts = async (): Promise<void> => {
-    try {
-      addLog('Syncing TopstepX accounts...')
-      
-      // Get the current account being edited or added
-      const currentAccount = editingAccount 
-        ? bot.targetAccounts.find(acc => acc.id === editingAccount)
-        : newTargetAccount
-
-      if (!currentAccount?.type || !currentAccount.credentials) {
-        addLog('No account type or credentials found')
-        return
-      }
-
-      // Send request to main process
-      const response = await window.electron.ipcRenderer.invoke('getAccounts', {
-        type: currentAccount.type,
-        credentials: currentAccount.credentials
-      })
-
-      console.log('Sync request sent with params:', {
-        type: currentAccount.type,
-        credentials: currentAccount.credentials
-      })
-
-      addLog('Account sync completed')
-    } catch (error) {
-      console.error('Error syncing accounts:', error)
-      addLog(`Error syncing accounts: ${error instanceof Error ? error.message : 'Unknown error'}`)
-      addAlert('error', `Error syncing accounts: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    }
-  }
-
-  const renderCredentialsForm = (): JSX.Element => {
-    switch (bot.masterAccount.connectionType) {
-      case 'MT4':
-      case 'MT5':
-      case 'cTrader':
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Username</label>
-              <input
-                type="text"
-                value={bot.masterAccount.credentials.username}
-                onChange={(e) => handleMasterAccountCredentialsChange('username', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <input
-                type="password"
-                value={bot.masterAccount.credentials.password}
-                onChange={(e) => handleMasterAccountCredentialsChange('password', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Server</label>
-              <input
-                type="text"
-                value={bot.masterAccount.credentials.server || ''}
-                onChange={(e) => handleMasterAccountCredentialsChange('server', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              />
-            </div>
-          </div>
-        )
-      default:
-        return <div>Unsupported connection type</div>
-    }
   }
 
   const handleEditAccount = (account: Bot['targetAccounts'][0]): void => {
@@ -808,7 +920,7 @@ const Bots: React.FC = () => {
                                 className="select select-bordered w-full"
                                 value={newTargetAccount.accountId}
                                 onChange={(e) => {
-                                  const selectedAccount = bot.targetAccounts.find(acc => acc.id === e.target.value)?.accounts?.find(a => a.id.toString() === e.target.value)
+                                  const selectedAccount = newTargetAccount.accounts?.find(a => a.id.toString() === e.target.value)
                                   setNewTargetAccount({ 
                                     ...newTargetAccount, 
                                     accountId: e.target.value,
@@ -817,7 +929,7 @@ const Bots: React.FC = () => {
                                 }}
                               >
                                 <option value="">Select an account</option>
-                                {bot.targetAccounts.find(acc => acc.id === newTargetAccount.id)?.accounts?.map(account => (
+                                {newTargetAccount.accounts?.map(account => (
                                   <option key={account.id} value={account.id.toString()}>
                                     {account.alias || account.name}
                                   </option>
@@ -949,8 +1061,8 @@ const Bots: React.FC = () => {
                                     value={editedAccount.accountId}
                                     onChange={(e) => {
                                       const selectedAccount = bot.targetAccounts.find(acc => acc.id === editingAccount)?.accounts?.find(a => a.id.toString() === e.target.value)
-                                      setEditedAccount({ 
-                                        ...editedAccount, 
+                                      setEditedAccount({
+                                        ...editedAccount,
                                         accountId: e.target.value,
                                         accounts: selectedAccount ? [selectedAccount] : undefined
                                       })

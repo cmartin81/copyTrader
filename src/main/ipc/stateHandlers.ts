@@ -1,5 +1,5 @@
 import { ipcMain, BrowserWindow } from 'electron'
-import { getAppState, setAppState } from '../store'
+import { getAppState, setAppState, getSessionState, setSessionState } from '../store'
 import { logToFile } from '../utils/logger'
 import { SessionState } from '../../shared/types'
 import { broadcastState } from '../utils/broadcastState'
@@ -9,6 +9,33 @@ export function setupStateHandlers(
   activeBrowsers: Map<string, BrowserWindow>,
   mainWindow: BrowserWindow | null
 ): void {
+  // Handle store operations
+  ipcMain.on('store-send', (event, { action, key, value }) => {
+    try {
+      switch (action) {
+        case 'get':
+          if (key === 'appState') {
+            event.returnValue = getAppState()
+          } else if (key === 'sessionState') {
+            event.returnValue = getSessionState()
+          }
+          break
+        case 'set':
+          if (key === 'appState') {
+            setAppState(value)
+            event.returnValue = true
+          } else if (key === 'sessionState') {
+            setSessionState(value)
+            event.returnValue = true
+          }
+          break
+      }
+    } catch (error) {
+      console.error('Error in store operation:', error)
+      event.returnValue = false
+    }
+  })
+
   ipcMain.handle('get-initial-state', () => {
     return {
       sessionState,
@@ -45,6 +72,6 @@ export function setupStateHandlers(
 
   ipcMain.on('state-updated', () => {
     logToFile('State updated')
-    broadcastState(mainWindow, sessionState)
+    broadcastState()
   })
 } 
