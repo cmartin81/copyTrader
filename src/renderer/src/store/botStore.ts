@@ -67,13 +67,18 @@ export const useBotStore = create<BotStore>((set, get) => ({
             // Only encrypt if the password is different from the original
             const originalAccount = get().bots.find(b => b.id === id)?.targetAccounts.find(a => a.id === account.id)
             if (originalAccount?.credentials?.password !== account.credentials.password) {
-              const encryptedPassword = await window.electron.ipcRenderer.invoke('encrypt-password', account.credentials.password) as string
-              return {
-                ...account,
-                credentials: {
-                  ...account.credentials,
-                  password: encryptedPassword
+              try {
+                const encryptedPassword = await window.electron.ipcRenderer.invoke('encrypt-password', account.credentials.password)
+                return {
+                  ...account,
+                  credentials: {
+                    ...account.credentials,
+                    password: encryptedPassword
+                  }
                 }
+              } catch (error) {
+                console.error('Error encrypting password:', error)
+                return account
               }
             }
           }

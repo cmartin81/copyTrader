@@ -20,12 +20,10 @@ export function setupAccountHandlers(): void {
         )
         const isOk = await targetBrowser.start()
         if (!isOk){
-          return { success: false, error: 'Unsupported account type' }
+          return { success: false, error: 'Could not sign in' }
         }
         const accounts = await targetBrowser.getAccounts()
-        console.log('[Main] Retrieved accounts:', accounts)
         targetBrowser.closeBrowser()
-
         return { success: true, data: accounts }
       }
 

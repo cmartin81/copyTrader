@@ -232,25 +232,10 @@ const Bots: React.FC = () => {
 
   const handleAddTargetAccount = async (): Promise<void> => {
     if (newTargetAccount.type && newTargetAccount.accountId && newTargetAccount.credentials?.username && newTargetAccount.credentials?.password) {
-      // Encrypt the password before saving
-      const response = await window.electron.ipcRenderer.invoke('encrypt-password', newTargetAccount.credentials.password)
-      let encryptedPassword: string | undefined
+      try {
+        // Encrypt the password before saving
+        const encryptedPassword = await window.electron.ipcRenderer.invoke('encrypt-password', newTargetAccount.credentials.password)
 
-      if (typeof response === 'string') {
-        encryptedPassword = response
-      } else if (isIpcResponse(response)) {
-        if (response.success) {
-          encryptedPassword = response.data as string
-        } else {
-          addLog(`Error encrypting password: ${response.error || 'Unknown error'}`)
-          return
-        }
-      } else {
-        addLog('Error encrypting password: Invalid response type')
-        return
-      }
-
-      if (encryptedPassword) {
         updateBot(bot.id, {
           targetAccounts: [
             ...bot.targetAccounts,
@@ -278,6 +263,9 @@ const Bots: React.FC = () => {
         })
         setShowAddTarget(false)
         addLog(`Added new target account: ${newTargetAccount.type}`)
+      } catch (error) {
+        addLog(`Error encrypting password: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        return
       }
     }
   }
@@ -401,6 +389,8 @@ const Bots: React.FC = () => {
       if (response.success) {
         setAccounts(response.data)
         addLog('Account sync completed')
+        addAlert('success', `Account sync completed`)
+
       } else {
         addLog(`Error syncing accounts: ${response.error}`)
         addAlert('error', `Error syncing accounts: ${response.error}`)
@@ -460,7 +450,7 @@ const Bots: React.FC = () => {
       accountId: account.accountId,
       credentials: undefined
     })
-    
+
     // Set the accounts data from the existing account
     if (account.accounts) {
       setAccounts(account.accounts)
@@ -503,25 +493,10 @@ const Bots: React.FC = () => {
       return
     }
 
-    // Encrypt the new password
-    const response = await window.electron.ipcRenderer.invoke('encrypt-password', newPassword)
-    let encryptedPassword: string | undefined
+    try {
+      // Encrypt the new password
+      const encryptedPassword = await window.electron.ipcRenderer.invoke('encrypt-password', newPassword)
 
-    if (typeof response === 'string') {
-      encryptedPassword = response
-    } else if (isIpcResponse(response)) {
-      if (response.success) {
-        encryptedPassword = response.data as string
-      } else {
-        addLog(`Error encrypting password: ${response.error || 'Unknown error'}`)
-        return
-      }
-    } else {
-      addLog('Error encrypting password: Invalid response type')
-      return
-    }
-
-    if (encryptedPassword) {
       const originalAccount = bot.targetAccounts.find(acc => acc.id === accountId)
       if (!originalAccount) return
 
@@ -541,6 +516,9 @@ const Bots: React.FC = () => {
         })
       })
       addLog('Password updated successfully')
+    } catch (error) {
+      addLog(`Error encrypting password: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      return
     }
 
     setShowPasswordModal(null)
