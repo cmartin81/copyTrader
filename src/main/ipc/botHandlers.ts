@@ -91,4 +91,21 @@ export function setupBotHandlers(activeBrowsers: Map<string, BrowserWindow>): vo
       bots: updatedBots
     })
   })
+
+  ipcMain.handle('place-order', async (event, { sourceSymbol, orderSize, targetAccountId }) => {
+    try {
+      console.log(`[Main] PlaceOrder received:`, {
+        sourceSymbol,
+        orderSize,
+        targetAccountId
+      })
+      return { success: true }
+    } catch (error) {
+      console.error('Error placing order:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      }
+    }
+  })
 }

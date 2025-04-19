@@ -31,7 +31,6 @@ const Bots: React.FC = () => {
   const logContainerRef = React.useRef<HTMLDivElement>(null)
   const [showAddTarget, setShowAddTarget] = useState(false)
   const [showTestMenu, setShowTestMenu] = useState<string | null>(null)
-  const [testSymbol, setTestSymbol] = useState('')
   const [editingAccount, setEditingAccount] = useState<string | null>(null)
   const [showPasswordModal, setShowPasswordModal] = useState<string | null>(null)
   const [newPassword, setNewPassword] = useState('')
@@ -358,14 +357,28 @@ const Bots: React.FC = () => {
     addLog(`Bot avatar updated to ${emoji}`)
   }
 
-  const handleTestOrder = (accountId: string, side: 'buy' | 'sell'): void => {
-    if (!testSymbol) {
-      addAlert('error', 'Please enter a symbol')
-      return
+  const handleTestOrder = async (accountId: string, side: 'buy' | 'sell', mapping: { sourceSymbol: string }): Promise<void> => {
+    try {
+      const orderSize = side === 'buy' ? 1 : -1
+      const response = await window.electron.ipcRenderer.invoke('place-order', {
+        sourceSymbol: mapping.sourceSymbol,
+        orderSize,
+        targetAccountId: accountId
+      })
+
+      if (response.success) {
+        addLog(`Test ${side} order placed for ${mapping.sourceSymbol} on account ${accountId}`)
+        addAlert('success', `Test ${side} order placed successfully`)
+      } else {
+        addLog(`Failed to place ${side} order: ${response.error}`)
+        addAlert('error', `Failed to place order: ${response.error}`)
+      }
+    } catch (error) {
+      console.error('Error placing test order:', error)
+      addLog(`Error placing ${side} order: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      addAlert('error', `Error placing order: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
-    addLog(`Test ${side} order for ${testSymbol} on account ${accountId}`)
-    setShowTestMenu(null)
-    setTestSymbol('')
+
   }
 
   const handleSyncAccounts = async (): Promise<void> => {
@@ -1189,13 +1202,13 @@ const Bots: React.FC = () => {
                     <div className="flex gap-2">
                       <button
                         className="btn btn-error btn-sm"
-                        onClick={() => handleTestOrder(showTestMenu, 'sell')}
+                        onClick={() => handleTestOrder(showTestMenu, 'sell', mapping)}
                       >
                         SELL
                       </button>
                       <button
                         className="btn btn-success btn-sm"
-                        onClick={() => handleTestOrder(showTestMenu, 'buy')}
+                        onClick={() => handleTestOrder(showTestMenu, 'buy', mapping)}
                       >
                         BUY
                       </button>
@@ -1208,7 +1221,6 @@ const Bots: React.FC = () => {
                   className="btn btn-ghost"
                   onClick={() => {
                     setShowTestMenu(null)
-                    setTestSymbol('')
                   }}
                 >
                   Close
