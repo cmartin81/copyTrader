@@ -2,9 +2,9 @@ import { ipcMain } from 'electron'
 import { ProjectXBrowser } from '../services/projectX/ProjectXBrowser'
 
 export function setupAccountHandlers(): void {
-  ipcMain.handle('getAccounts', async (event, { type, credentials }) => {
+  ipcMain.handle('getPlatformInfo', async (event, { type, credentials }) => {
     try {
-      console.log('[Main] Received getAccounts request with params:', {
+      console.log('[Main] Received getPlatformInfo request with params:', {
         type,
         credentials: {
           ...credentials,
@@ -23,8 +23,9 @@ export function setupAccountHandlers(): void {
           return { success: false, error: 'Could not sign in' }
         }
         const accounts = await targetBrowser.getAccounts()
+        const symbols = await targetBrowser.getPlatformSymbols()
         targetBrowser.closeBrowser()
-        return { success: true, data: accounts }
+        return { success: true, data: { accounts, symbols } }
       }
 
       return { success: false, error: 'Unsupported account type' }

@@ -51,6 +51,7 @@ const Bots: React.FC = () => {
   })
   const [isAddBotModalOpen, setIsAddBotModalOpen] = useState(false)
   const [accounts, setAccounts] = useState<{ id: string; name: string; alias: string | null }[]>([])
+  const [symbols, setSymbols] = useState<{ id: string; name: string; short: string | null }[]>([])
 
   const avatarOptions = [
     // Trading & Finance
@@ -248,6 +249,7 @@ const Bots: React.FC = () => {
                 password: encryptedPassword
               },
               accounts: accounts,
+              symbols: symbols,
               symbolMappings: []
             }
           ]
@@ -381,13 +383,14 @@ const Bots: React.FC = () => {
       }
 
       // Send request to main process
-      const response = await window.electron.ipcRenderer.invoke('getAccounts', {
+      const response = await window.electron.ipcRenderer.invoke('getPlatformInfo', {
         type: currentAccount.type,
         credentials: currentAccount.credentials
       })
 
       if (response.success) {
-        setAccounts(response.data)
+        setAccounts(response.data.accounts)
+        setSymbols(response.data.symbols)
         addLog('Account sync completed')
         addAlert('success', `Account sync completed`)
 

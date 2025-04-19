@@ -6,6 +6,11 @@ import _ from 'lodash'
 import { waitMs } from '../../utils'
 const puppeteer = require('puppeteer-core')
 
+interface Symbol {
+  id: string
+  name: string
+}
+
 export const PropFirmConfig = {
   TopstepX: {
     url: 'https://topstepx.com',
@@ -150,6 +155,32 @@ export class ProjectXBrowser extends AbstractTargetAccount {
   ): Promise<ProjectXBrowser> {
     const browser = await pie.connect(app, puppeteer)
     return new ProjectXBrowser(browser, propFirm, username, password)
+  }
+
+  async getPlatformSymbols(): Promise<[Symbol]> {
+    const page = this.page!
+
+    const response = await page.evaluate(async (apiUrl) => {
+      const token = localStorage.getItem('token')
+      if (!token) throw new Error('Could not fetch symbols (Error: #Symbol_1)')
+
+      const res = await fetch(apiUrl + '/Metadata', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      if (!res.ok) throw new Error('Could not fetch symbols (Error: #Symbol_2)')
+      return await res.json()
+    }, this.config.apiUrl)
+
+    const symbols = _.chain(response)
+      .map((res) => ({ id: res.symbol, name: res.exchange.substring(1) + ' - ' + res.fullName }))
+      .sortBy('name')
+      .value()
+
+    return symbols as [Symbol]
   }
 
   async getAccounts(): Promise<[AbstractAccount]> {

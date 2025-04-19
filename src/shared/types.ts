@@ -22,6 +22,7 @@ export interface Bot {
       name: string
       alias: string | null
     }[]
+    symbols?: { id: string; name: string }[]
     symbolMappings: {
       sourceSymbol: string
       targetSymbol: string
