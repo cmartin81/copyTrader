@@ -6,7 +6,8 @@ import BotManager from '../services/botManager/botManager'
 export function setupBotHandlers(activeBrowsers: Map<string, BrowserWindow>): void {
   ipcMain.handle('launch-bot', async (event, botId, botName) => {
     try {
-      const botManager = new BotManager(botId)
+      const botManager = BotManager.getInstance()
+      botManager.initialize(botId)
       await botManager.start()
       return { success: true }
     } catch (error) {

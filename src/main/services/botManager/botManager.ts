@@ -5,22 +5,55 @@ import { sleepMs } from '../../tools/sleep'
 import { broadcastState } from '../../index'
 
 class BotManager {
-  botSettings: any
+  private static instance: BotManager | null = null
+  private botSettings: any
+  private currentBotId: string | null = null
 
-  constructor(botId: string) {
-    console.log('BotManager created for bot: ' + botId)
-    const appState = getAppState()
-    this.botSettings = _.find(appState.bots, { id: botId })
+  private constructor() {
+    // Private constructor to prevent direct instantiation
+  }
 
-    if (!this.botSettings) {
-      throw new Error('Bot not found or no target accounts configured.')
+  public static getInstance(): BotManager {
+    if (!BotManager.instance) {
+      BotManager.instance = new BotManager()
+    }
+    return BotManager.instance
+  }
+
+  public initialize(botId: string): void {
+    if (this.currentBotId && this.currentBotId !== botId) {
+      throw new Error('Cannot initialize new bot while another bot is running. Please stop the current bot first.')
     }
 
-    if (!this.botSettings.targetAccounts?.length) {
-      throw new Error('No target accounts configured.')
+    if (!this.currentBotId) {
+      console.log('BotManager initialized for bot: ' + botId)
+      const appState = getAppState()
+      this.botSettings = _.find(appState.bots, { id: botId })
+
+      if (!this.botSettings) {
+        throw new Error('Bot not found or no target accounts configured.')
+      }
+
+      if (!this.botSettings.targetAccounts?.length) {
+        throw new Error('No target accounts configured.')
+      }
+      this.currentBotId = botId
+      console.log('Current bots:', this.botSettings)
     }
-    // todo: more validations....
-    console.log('Current bots:', this.botSettings)
+  }
+
+  public async stop(): Promise<void> {
+    console.log('BotManager stopped')
+    this.currentBotId = null
+    this.botSettings = null
+  }
+
+  public isInitialized(): boolean {
+    return this.currentBotId !== null
+  }
+
+  public getCurrentBotId(): string | null {
+    return this.currentBotId
   }
 
   async start() {
@@ -34,24 +67,20 @@ class BotManager {
           targetAccount.credentials.password
         )
         await targetBrowser.start()
-        await sleepMs(5000)
-        const accounts = await targetBrowser.getAccounts()
-        console.log({ accounts })
-        targetAccount.accounts = accounts
-        const appState = getAppState()
-        const updatedBot = { ...this.botSettings }
-        const updatedBots = appState.bots.map((bot) =>
-          bot.id === this.botSettings.id ? updatedBot : bot
-        )
-        console.log({ ...appState, bots: updatedBots })
-        setAppState({ ...appState, bots: updatedBots })
+        // const accounts = await targetBrowser.getAccounts()
+        // console.log({ accounts })
+        // targetAccount.accounts = accounts
+        // const appState = getAppState()
+        // const updatedBot = { ...this.botSettings }
+        // const updatedBots = appState.bots.map((bot) =>
+        //   bot.id === this.botSettings.id ? updatedBot : bot
+        // )
+        // console.log({ ...appState, bots: updatedBots })
+        // setAppState({ ...appState, bots: updatedBots })
+
       }
     }
     return true
-  }
-
-  async stop(): Promise<void> {
-    console.log('BotManager stopped')
   }
 }
 
