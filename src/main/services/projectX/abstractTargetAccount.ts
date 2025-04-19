@@ -1,9 +1,8 @@
 import { Browser } from 'puppeteer-core'
 import { BrowserWindow } from 'electron'
 import { Page } from 'puppeteer-core'
-
 // @ts-ignore: ...
-// import { default as PQueue } from "p-queue";
+import { default as PQueue } from "p-queue";
 
 export interface Account {
   id: string;
@@ -11,11 +10,16 @@ export interface Account {
   alias: string | null;
 }
 
+export interface Symbol {
+  id: string
+  name: string
+}
+
 export abstract class AbstractTargetAccount {
   browser: Browser
   puppeteerBrowser: BrowserWindow
   page?: Page
- // queue = new PQueue({ concurrency: 1 });
+  queue = new PQueue({ concurrency: 1 });
   storeName: string
   appStoreName: string
   exchangeUrl: string
@@ -39,10 +43,8 @@ export abstract class AbstractTargetAccount {
 
   abstract start(): Promise<boolean>
   abstract getAccounts(): Promise<[Account]>
-  // abstract getSymbolMappings()
-  // abstract setSymbolMapping(sourceSymbol:string, targetSymbol:string)
-  // abstract addSymbol(newSymbol:string)
-  // abstract placeOrder(targetSymbol:string, amount:number)
+  abstract getPlatformSymbols(): Promise<[Symbol]>
+  abstract placeOrder(accountId: string, targetSymbolId:string, amount:number): Promise<boolean>
   // abstract stop()
 
   async closeBrowser() {

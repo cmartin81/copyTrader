@@ -1,15 +1,11 @@
 import { AbstractTargetAccount, type Account as AbstractAccount } from './abstractTargetAccount'
-import { app, safeStorage } from 'electron'
+import { app } from 'electron'
 import pie from 'puppeteer-in-electron'
 import { Browser } from 'puppeteer-core'
 import _ from 'lodash'
-import { waitMs } from '../../utils'
+import { Symbol } from './abstractTargetAccount'
+import { v4 as uuidv4 } from 'uuid'
 const puppeteer = require('puppeteer-core')
-
-interface Symbol {
-  id: string
-  name: string
-}
 
 export const PropFirmConfig = {
   TopstepX: {
@@ -36,10 +32,15 @@ interface PropConfig {
   apiUrl: string
 }
 
-interface Account {
-  id: string
-  name: string
-  alias: string | null
+interface Order {
+  ok: boolean
+  errorMessage: null | string
+}
+
+interface RestResponse {
+  ok: boolean
+  errorMessage: null | string
+  data?: any
 }
 
 export class ProjectXBrowser extends AbstractTargetAccount {
@@ -64,14 +65,7 @@ export class ProjectXBrowser extends AbstractTargetAccount {
     this.username = username
     this.password = password
     this.config = PropFirmConfig[propfirm]
-
-    //    this.apiUrl =  config.exchanges[this.exchangeName].apiUrl
   }
-
-  // private decryptPassword(encryptedPassword: string): string {
-  //   const retrievedEncryptedBuffer = Buffer.from(encryptedPassword, 'base64')
-  //   return safeStorage.decryptString(retrievedEncryptedBuffer)
-  // }
 
   async isLoginPageDisplayed(): Promise<boolean> {
     const page = this.page!
@@ -157,6 +151,107 @@ export class ProjectXBrowser extends AbstractTargetAccount {
     return new ProjectXBrowser(browser, propFirm, username, password)
   }
 
+  async placeOrder(
+    accountId: string,
+    targetSymbolId: string,
+    amountOfContracts: number
+  ): Promise<boolean> {
+    this.queue.add(async () => {
+      const startTime = Date.now()
+      // this.log(`${type} ${amountOfContracts} ${contract!.split('.')[2]} @MARKET`, 'info', logMeta)
+
+      try {
+        const orderResponse: any = await this.placeOrderRestCall(
+          accountId,
+          targetSymbolId,
+          amountOfContracts
+        )
+
+        if (orderResponse.errorMessage) {
+          console.error(orderResponse.errorMessage)
+          console.log('ERROR: Could not place order')
+          // this.log(
+          //   `${botsetting.name}: Did not buy! Pausing bot and close position (${orderResponse.errorMessage})`,
+          //   'error',
+          //   logMeta,
+          // )
+          // await this.closePosition(account, contract)
+          // await turnOffBot(botsetting.id)
+          return false
+        }
+        const endTime = Date.now()
+        const totalMs = endTime - startTime
+        // this.log(`Placed ${amountOfContracts} (${totalMs}ms)`, 'success', logMeta)
+        console.log(`Placed ${amountOfContracts} (${totalMs}ms)`, 'success')
+        return true
+      } catch (_e) {
+        return false
+      }
+    })
+    return true
+  }
+
+  async doRestCall(url, method, body = null): Promise<RestResponse> {
+    const page = this.page!
+    try {
+      const response = await page.evaluate(
+        async (url, method, body) => {
+          const token = localStorage.getItem('token')
+          if (!token) throw new Error('Token not found in localStorage')
+
+          const payload: any = {
+            method: method,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+          if (body) {
+            payload.body = JSON.stringify(body)
+          }
+
+          const res = await fetch(url, payload)
+          if (!res.ok) {
+            return {
+              ok: false,
+              errorMessage: 'Something went wrong with the request.'
+            }
+          }
+
+          const jsonRes: any = await res.json()
+          return {
+            ok: true,
+            data: jsonRes,
+            errorMessage: null
+          }
+        },
+        url,
+        method,
+        body
+      )
+
+      return response as Order
+    } catch (e: any) {
+      return { ok: false, errorMessage: e.message }
+    }
+  }
+
+  private async placeOrderRestCall(accountId, tickerId, position: number): Promise<Order> {
+    const url = this.config.apiUrl + '/Order'
+    const body: any = {
+      accountId: accountId,
+      symbolId: tickerId,
+      type: 2, // 2 limit order
+      limitPrice: null,
+      stopPrice: null,
+      positionSize: position,
+      customTag: uuidv4()
+    }
+    const response = await this.doRestCall(url, 'POST', body)
+
+    return response as Order
+  }
+
   async getPlatformSymbols(): Promise<[Symbol]> {
     const page = this.page!
 
@@ -168,8 +263,8 @@ export class ProjectXBrowser extends AbstractTargetAccount {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+          'Content-Type': 'application/json'
+        }
       })
       if (!res.ok) throw new Error('Could not fetch symbols (Error: #Symbol_2)')
       return await res.json()
