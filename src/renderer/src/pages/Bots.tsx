@@ -361,6 +361,7 @@ const Bots: React.FC = () => {
     try {
       const orderSize = side === 'buy' ? 1 : -1
       const response = await window.electron.ipcRenderer.invoke('place-order', {
+        botId,
         sourceSymbol: mapping.sourceSymbol,
         orderSize,
         targetAccountId: accountId
@@ -379,6 +380,7 @@ const Bots: React.FC = () => {
       addAlert('error', `Error placing order: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 
+    setTestSymbol('')
   }
 
   const handleSyncAccounts = async (): Promise<void> => {

@@ -92,19 +92,23 @@ export function setupBotHandlers(activeBrowsers: Map<string, BrowserWindow>): vo
     })
   })
 
-  ipcMain.handle('place-order', async (event, { sourceSymbol, orderSize, targetAccountId }) => {
+  ipcMain.handle('place-order', async (event, { botId, sourceSymbol, orderSize, targetAccountId }) => {
     try {
+      logToFile(`[Main] PlaceOrder received: botId=${botId}, sourceSymbol=${sourceSymbol}, orderSize=${orderSize}, targetAccountId=${targetAccountId}`)
       console.log(`[Main] PlaceOrder received:`, {
+        botId,
         sourceSymbol,
         orderSize,
         targetAccountId
       })
       return { success: true }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      logToFile(`[Main] Error placing order: ${errorMessage}`)
       console.error('Error placing order:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: errorMessage
       }
     }
   })
