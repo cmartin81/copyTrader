@@ -25,9 +25,18 @@ interface Bot {
       username: string
       password: string
     }
+    accounts?: {
+      id: number
+      name: string
+      alias: string | null
+    }[]
+    symbols?: {
+      id: string
+      name: string
+    }[]
     symbolMappings: {
       sourceSymbol: string
-      targetSymbol: string
+      targetSymbolId: string
       multiplier: number
       isEditing: boolean
     }[]

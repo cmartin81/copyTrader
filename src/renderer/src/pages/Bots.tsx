@@ -280,7 +280,7 @@ const Bots: React.FC = () => {
             ...account,
             symbolMappings: [...account.symbolMappings, {
               sourceSymbol: '',
-              targetSymbol: '',
+              targetSymbolId: '',
               multiplier: 1,
               isEditing: true
             }]
@@ -298,7 +298,7 @@ const Bots: React.FC = () => {
           const newMappings = [...account.symbolMappings]
           const mapping = newMappings[index]
           newMappings[index] = { ...mapping, isEditing: false }
-          addLog(`Saved mapping for ${account.type}: ${mapping.sourceSymbol} → ${mapping.targetSymbol} (x${mapping.multiplier})`)
+          addLog(`Saved mapping for ${account.type}: ${mapping.sourceSymbol} → ${mapping.targetSymbolId} (x${mapping.multiplier})`)
           return { ...account, symbolMappings: newMappings }
         }
         return account
@@ -1015,22 +1015,27 @@ const Bots: React.FC = () => {
                               placeholder="Source"
                             />
                             <span>→</span>
-                            <input
-                              type="text"
-                              className="input input-bordered input-sm w-28"
-                              value={mapping.targetSymbol}
+                            <select
+                              className="select select-bordered select-sm w-48"
+                              value={mapping.targetSymbolId}
                               disabled={!mapping.isEditing}
                               onChange={(e) => {
                                 const newMappings = [...account.symbolMappings]
-                                newMappings[index] = { ...mapping, targetSymbol: e.target.value }
+                                newMappings[index] = { ...mapping, targetSymbolId: e.target.value }
                                 updateBot(bot.id, {
                                   targetAccounts: bot.targetAccounts.map(a =>
                                     a.id === account.id ? { ...a, symbolMappings: newMappings } : a
                                   )
                                 })
                               }}
-                              placeholder="Target"
-                            />
+                            >
+                              <option value="">Select a symbol</option>
+                              {account.symbols?.map(symbol => (
+                                <option key={symbol.id} value={symbol.id}>
+                                  {symbol.name}
+                                </option>
+                              ))}
+                            </select>
                             <span>×</span>
                             <input
                               type="number"
@@ -1193,7 +1198,9 @@ const Bots: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{mapping.sourceSymbol}</span>
                       <span>→</span>
-                      <span className="font-medium">{mapping.targetSymbol}</span>
+                      <span className="font-medium">
+                        {bot.targetAccounts.find(a => a.id === showTestMenu)?.symbols?.find(s => s.id === mapping.targetSymbolId)?.name || 'Unknown symbol'}
+                      </span>
                       <span>×</span>
                       <span className="font-medium">{mapping.multiplier}</span>
                     </div>
