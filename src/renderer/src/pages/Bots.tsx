@@ -529,29 +529,7 @@ const Bots: React.FC = () => {
   }
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Trading Bots</h1>
-        <div className="flex gap-4">
-          <button
-            onClick={() => window.store.openLogsDirectory()}
-            className="btn btn-ghost"
-            title="Open Logs Directory"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Logs
-          </button>
-          <button
-            onClick={() => setIsAddBotModalOpen(true)}
-            className="btn btn-primary"
-          >
-            Add Bot
-          </button>
-        </div>
-      </div>
-
+    <div className="">
       <div className="flex flex-col h-screen relative">
         <div className="mx-6 mt-6 z-20">
           <div className="bg-base-100 rounded-lg p-6 border border-base-300">
@@ -1099,7 +1077,13 @@ const Bots: React.FC = () => {
           {/* Log Section */}
           <div className={getLogClassName()}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">Activity Log</h3>
+              <div className="flex items-center space-x-2">
+                <h3 className="text-xl font-semibold">Activity Log</h3>
+                <button
+                  className="btn btn-ghost btn-xs opacity-50 hover:opacity-100"
+                  onClick={() => window.store.openLogsDirectory()}
+                >Open logs</button>
+              </div>
               <div className="flex items-center space-x-2">
                 <div className="join">
                   <button
