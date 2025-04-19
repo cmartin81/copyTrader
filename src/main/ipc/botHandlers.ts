@@ -1,8 +1,41 @@
-import { ipcMain } from 'electron'
+import { BrowserWindow, ipcMain } from 'electron'
 import { getAppState, setAppState } from '../store'
 import { logToFile } from '../utils/logger'
+import BotManager from '../services/botManager/botManager'
 
-export function setupBotHandlers(): void {
+export function setupBotHandlers(activeBrowsers: Map<string, BrowserWindow>): void {
+  ipcMain.handle('launch-bot', async (event, botId, botName) => {
+    try {
+      const botManager = new BotManager(botId)
+      await botManager.start()
+      return { success: true }
+    } catch (error) {
+      console.error('Error launching puppeteer:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      }
+    }
+  })
+
+  ipcMain.handle('close-bot-window', async (event, botId) => {
+    try {
+      const botWindow = activeBrowsers.get(botId)
+      if (botWindow) {
+        botWindow.close()
+        activeBrowsers.delete(botId)
+        return { success: true }
+      }
+      return { success: false, error: 'Window not found' }
+    } catch (error) {
+      console.error('Error closing bot window:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      }
+    }
+  })
+
   ipcMain.on('add-bot', (event, { botId, botName }) => {
     const currentState = getAppState()
     const newBot = {
@@ -57,4 +90,4 @@ export function setupBotHandlers(): void {
       bots: updatedBots
     })
   })
-} 
+}

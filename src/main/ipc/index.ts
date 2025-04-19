@@ -14,10 +14,9 @@ export function setupAllIpcHandlers(
   mainWindow: BrowserWindow | null
 ): void {
   setupStateHandlers(sessionState, activeBrowsers, mainWindow)
-  setupBotHandlers()
+  setupBotHandlers(activeBrowsers)
   setupCounterHandlers(sessionState, mainWindow)
-  setupPuppeteerHandlers(activeBrowsers)
   setupAccountHandlers()
   setupLogHandlers()
   setupSecurityHandlers()
-} 
+}
