@@ -150,7 +150,7 @@ const Bots: React.FC = () => {
 
         // Start the bot
         // alert(JSON.stringify(bot))
-        const response = await window.electron.ipcRenderer.invoke('launch-puppeteer', bot.id, bot.name)
+        const response = await window.electron.ipcRenderer.invoke('launch-bot', bot.id, bot.name)
         if (response.success) {
           toggleBot(bot.id)
           updateBot(bot.id, { isActive: true })
