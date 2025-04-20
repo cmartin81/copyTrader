@@ -1,8 +1,8 @@
 import { ipcMain } from 'electron'
 import { ProjectXBrowser } from '../services/projectX/ProjectXBrowser'
-
+const projectXTypes = ['Topstepx', 'Bulenox','TheFuturesDesk', 'TickTickTrader']
 export function setupAccountHandlers(): void {
-  ipcMain.handle('getPlatformInfo', async (event, { type, credentials }) => {
+  ipcMain.handle('getPlatformInfo', async (_event, { type, credentials }) => {
     try {
       console.log('[Main] Received getPlatformInfo request with params:', {
         type,
@@ -12,9 +12,9 @@ export function setupAccountHandlers(): void {
         }
       })
 
-      if (type === 'TopstepX') {
+      if (projectXTypes.includes(type)) {
         const targetBrowser = await ProjectXBrowser.create(
-          'TopstepX',
+          type,
           credentials.username,
           credentials.password
         )

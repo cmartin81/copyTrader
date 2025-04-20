@@ -1,8 +1,6 @@
-import { getAppState, setAppState } from '../../store'
+import { getAppState } from '../../store'
 import _ from 'lodash'
 import { ProjectXBrowser } from '../projectX/ProjectXBrowser'
-import { sleepMs } from '../../tools/sleep'
-import { broadcastState } from '../../index'
 import { AbstractTargetAccount } from '../projectX/abstractTargetAccount'
 import { ipcMain } from 'electron'
 
@@ -19,14 +17,14 @@ class BotManager {
 
   private setupAppStateListener(): void {
     // Listen for store-send events
-    ipcMain.on('store-send', (event, { action, key, value }) => {
+    ipcMain.on('store-send', (_event, { action, key, value }) => {
       if (action === 'set' && key === 'appState' && this.currentBotId) {
         this.botSettings = _.find(value.bots, { id: this.currentBotId })
       }
     })
 
     // Also listen for set-bots events
-    ipcMain.on('set-bots', (event, bots) => {
+    ipcMain.on('set-bots', (_event, bots) => {
       if (this.currentBotId) {
         this.botSettings = _.find(bots, { id: this.currentBotId })
       }

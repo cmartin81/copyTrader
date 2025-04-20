@@ -13,6 +13,7 @@ const isIpcResponse = (response: unknown): response is IpcResponse => {
   return typeof response === 'object' && response !== null && 'success' in response
 }
 
+const projectXTypes = ['TopstepX', 'Bulenox', 'TheFuturesDesk', 'TickTickTrader']
 const Bots: React.FC = () => {
   const { botId } = useParams<{ botId: string }>()
   const navigate = useNavigate()
@@ -385,7 +386,7 @@ const Bots: React.FC = () => {
 
   const handleSyncAccounts = async (): Promise<void> => {
     try {
-      addLog('Syncing TopstepX accounts...')
+      addLog('Syncing ProjectX account...')
 
       // Get the current account being edited or added
       const currentAccount = editingAccount
@@ -748,7 +749,7 @@ const Bots: React.FC = () => {
                     </div>
                     {newTargetAccount.type && (
                       <>
-                        {(newTargetAccount.type === 'TopstepX' || newTargetAccount.type === 'Bulenox' || newTargetAccount.type === 'TheFuturesDesk') && (
+                        {(projectXTypes.includes(newTargetAccount.type)) && (
                           <div className="space-y-4">
                             <div>
                               <label className="block text-sm text-base-content/70 mb-2">Username</label>
@@ -782,7 +783,7 @@ const Bots: React.FC = () => {
                             </div>
                           </div>
                         )}
-                        {newTargetAccount.type === 'TopstepX' && (
+                        {projectXTypes.includes(newTargetAccount.type) && (
                           <div className="flex gap-2 items-end">
                             <div className="flex-1">
                               <label className="block text-sm text-base-content/70 mb-2">Account</label>
@@ -817,7 +818,7 @@ const Bots: React.FC = () => {
                             </button>
                           </div>
                         )}
-                        {newTargetAccount.type && newTargetAccount.type !== 'TopstepX' && (
+                        {newTargetAccount.type && !projectXTypes.includes(newTargetAccount.type) && (
                           <div>
                             <label className="block text-sm text-base-content/70 mb-2">Account ID</label>
                             <input
@@ -890,7 +891,7 @@ const Bots: React.FC = () => {
                       <div className="space-y-4">
                         {editedAccount.type && (
                           <>
-                            {(editedAccount.type === 'TopstepX' || editedAccount.type === 'Bulenox' || editedAccount.type === 'TheFuturesDesk') && (
+                            {(projectXTypes.includes(editedAccount.type)) && (
                               <div className="space-y-4">
                                 <div className="flex gap-4 items-end">
                                   <div className="flex-1">
@@ -922,7 +923,7 @@ const Bots: React.FC = () => {
                                 </div>
                               </div>
                             )}
-                            {editedAccount.type === 'TopstepX' && (
+                            {projectXTypes.includes(editedAccount.type) && (
                               <div className="flex gap-2 items-end">
                                 <div className="flex-1">
                                   <label className="block text-sm text-base-content/70 mb-2">Account</label>
@@ -957,7 +958,7 @@ const Bots: React.FC = () => {
                                 </button>
                               </div>
                             )}
-                            {editedAccount.type && editedAccount.type !== 'TopstepX' && (
+                            {editedAccount.type && !projectXTypes.includes(editedAccount.type) && (
                               <div>
                                 <label className="block text-sm text-base-content/70 mb-2">Account ID</label>
                                 <input
