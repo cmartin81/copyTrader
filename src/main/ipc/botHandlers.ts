@@ -2,6 +2,7 @@ import { BrowserWindow, ipcMain } from 'electron'
 import { getAppState, setAppState } from '../store'
 import { logToFile } from '../utils/logger'
 import BotManager from '../services/botManager/botManager'
+import botManager from '../services/botManager/botManager'
 
 export function setupBotHandlers(activeBrowsers: Map<string, BrowserWindow>): void {
   ipcMain.handle('launch-bot', async (event, botId, botName) => {
@@ -63,9 +64,7 @@ export function setupBotHandlers(activeBrowsers: Map<string, BrowserWindow>): vo
 
   ipcMain.on('update-bot-pnl', (event, { botId, pnl }) => {
     const currentState = getAppState()
-    const updatedBots = currentState.bots.map(bot =>
-      bot.id === botId ? { ...bot, pnl } : bot
-    )
+    const updatedBots = currentState.bots.map((bot) => (bot.id === botId ? { ...bot, pnl } : bot))
     setAppState({
       ...currentState,
       bots: updatedBots
@@ -74,7 +73,7 @@ export function setupBotHandlers(activeBrowsers: Map<string, BrowserWindow>): vo
 
   ipcMain.on('remove-bot', (event, botId) => {
     const currentState = getAppState()
-    const updatedBots = currentState.bots.filter(bot => bot.id !== botId)
+    const updatedBots = currentState.bots.filter((bot) => bot.id !== botId)
     setAppState({
       ...currentState,
       bots: updatedBots
@@ -83,7 +82,7 @@ export function setupBotHandlers(activeBrowsers: Map<string, BrowserWindow>): vo
 
   ipcMain.on('update-bot-status', (event, { botId, isActive }) => {
     const currentState = getAppState()
-    const updatedBots = currentState.bots.map(bot =>
+    const updatedBots = currentState.bots.map((bot) =>
       bot.id === botId ? { ...bot, isActive } : bot
     )
     setAppState({
@@ -92,24 +91,40 @@ export function setupBotHandlers(activeBrowsers: Map<string, BrowserWindow>): vo
     })
   })
 
-  ipcMain.handle('place-order', async (event, { botId, sourceSymbol, orderSize, targetAccountId }) => {
-    try {
-      logToFile(`[Main] PlaceOrder received: botId=${botId}, sourceSymbol=${sourceSymbol}, orderSize=${orderSize}, targetAccountId=${targetAccountId}`)
-      console.log(`[Main] PlaceOrder received:`, {
-        botId,
-        sourceSymbol,
-        orderSize,
-        targetAccountId
-      })
-      return { success: true }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      logToFile(`[Main] Error placing order: ${errorMessage}`)
-      console.error('Error placing order:', error)
+  ipcMain.handle(
+    'place-order',
+    async (event, { botId, sourceSymbol, orderSize, targetAccountId }) => {
+      try {
+        logToFile(
+          `[Main] PlaceOrder received: botId=${botId}, sourceSymbol=${sourceSymbol}, orderSize=${orderSize}, targetAccountId=${targetAccountId}`
+        )
+        console.log(`[Main] PlaceOrder received:`, {
+          botId,
+          sourceSymbol,
+          orderSize,
+          targetAccountId
+        })
+
+        const botManager = BotManager.getInstance()
+        // todo: check if running
+        if (botManager.getCurrentBotId() === botId) {
+          await botManager.placeOrderSingelOrder(targetAccountId, sourceSymbol, orderSize)
+          return { success: true }
+        }
+
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+        logToFile(`[Main] Error placing order: ${errorMessage}`)
+        console.error('Error placing order:', error)
+        return {
+          success: false,
+          error: errorMessage
+        }
+      }
       return {
         success: false,
-        error: errorMessage
+        error: 'Could not place order...'
       }
     }
-  })
+  )
 }

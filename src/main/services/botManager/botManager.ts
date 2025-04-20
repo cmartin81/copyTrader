@@ -3,11 +3,13 @@ import _ from 'lodash'
 import { ProjectXBrowser } from '../projectX/ProjectXBrowser'
 import { sleepMs } from '../../tools/sleep'
 import { broadcastState } from '../../index'
+import { AbstractTargetAccount } from '../projectX/abstractTargetAccount'
 
 class BotManager {
   private static instance: BotManager | null = null
   private botSettings: any
   private currentBotId: string | null = null
+  private targets:{[key:string]:AbstractTargetAccount} = {}
 
   private constructor() {
     // Private constructor to prevent direct instantiation
@@ -56,8 +58,27 @@ class BotManager {
     return this.currentBotId
   }
 
+  public async placeOrderSingelOrder(targetAccountId: string, sourceSymbol, orderSize): Promise<boolean> {
+    const target = this.targets[targetAccountId];
+    const targetSettings = _.find(this.botSettings.targetAccounts, { id: targetAccountId }) ?? {}
+    const targetSymbolMapping = _.find(targetSettings.symbolMappings, mapping => mapping.sourceSymbol === sourceSymbol)
+    const { targetSymbolId, multiplier } = targetSymbolMapping
+    console.log({
+      targetSymbolId, targetSymbolMapping, targetSettings, realOrder: orderSize * multiplier
+    })
+    if (targetAccountId && targetSymbolId){
+      const result = await target.placeOrder(targetSettings.accountId, targetSymbolId, orderSize*multiplier)
+      return result
+    }
+    return false
+  }
+
   async start() {
     console.log('BotManager started')
+    if (Object.keys(this.targets).length !== 0) {
+      throw new Error('Cannot start bot Error #S99')
+    }
+
     for (const targetAccount of this.botSettings.targetAccounts) {
       console.log('Starting bot for account: ' + targetAccount.type)
       if (targetAccount.type === 'TopstepX') {
@@ -67,6 +88,8 @@ class BotManager {
           targetAccount.credentials.password
         )
         await targetBrowser.start()
+        this.targets[targetAccount.id] = targetBrowser
+
         // const accounts = await targetBrowser.getAccounts()
         // console.log({ accounts })
         // targetAccount.accounts = accounts
