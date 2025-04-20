@@ -4,6 +4,7 @@ import { ProjectXBrowser } from '../projectX/ProjectXBrowser'
 import { sleepMs } from '../../tools/sleep'
 import { broadcastState } from '../../index'
 import { AbstractTargetAccount } from '../projectX/abstractTargetAccount'
+import { ipcMain } from 'electron'
 
 class BotManager {
   private static instance: BotManager | null = null
@@ -13,6 +14,23 @@ class BotManager {
 
   private constructor() {
     // Private constructor to prevent direct instantiation
+    this.setupAppStateListener()
+  }
+
+  private setupAppStateListener(): void {
+    // Listen for store-send events
+    ipcMain.on('store-send', (event, { action, key, value }) => {
+      if (action === 'set' && key === 'appState' && this.currentBotId) {
+        this.botSettings = _.find(value.bots, { id: this.currentBotId })
+      }
+    })
+
+    // Also listen for set-bots events
+    ipcMain.on('set-bots', (event, bots) => {
+      if (this.currentBotId) {
+        this.botSettings = _.find(bots, { id: this.currentBotId })
+      }
+    })
   }
 
   public static getInstance(): BotManager {
