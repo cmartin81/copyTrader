@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useBotStore } from '../store/botStore'
 import { useSessionStore } from '../store/sessionStore'
 import Alert from '../components/Alert'
@@ -18,24 +18,23 @@ const MainLayout = (): JSX.Element => {
   const [newBotName, setNewBotName] = useState('')
   const { bots, addBot } = useBotStore()
   const { alerts, removeAlert } = useSessionStore()
+  const navigate = useNavigate()
 
-  const handleAddBot = (): void => {
+  const handleAddBot = async (): Promise<void> => {
     if (newBotName.trim()) {
-      addBot({
+      const newBot = {
         name: newBotName.trim(),
         targetAccounts: [],
-        masterAccount: {
-          type: 'PropFirm',
-          connectionType: 'MT4',
-          credentials: {
-            username: '',
-            password: '',
-            server: ''
-          }
-        }
-      })
+        masterAccount: undefined
+      }
+      const response = await addBot(newBot)
       setNewBotName('')
       setIsAddBotModalOpen(false)
+      
+      // Navigate to the newly created bot using the response
+      if (response && response.id) {
+        navigate(`/bots/${response.id}`)
+      }
     }
   }
 

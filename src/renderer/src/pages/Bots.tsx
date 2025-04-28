@@ -5,6 +5,7 @@ import { useSessionStore } from '../store/sessionStore'
 import { createPortal } from 'react-dom'
 import { v4 as uuidv4 } from 'uuid'
 import { TargetAccount, IpcResponse } from '../types/window'
+import MasterAccountCard from '../components/MasterAccountCard'
 
 type LogSize = 'normal' | 'half' | 'full'
 
@@ -63,7 +64,7 @@ const Bots: React.FC = () => {
     // Nature & Weather
     '🌱', '🌿', '🌳', '🌲', '🌴', '🌵', '🌺', '🌸', '🌼', '🌻', '🌹', '🌷', '🍀', '🌾', '🌽', '🍄',
     // Space & Science
-    '🚀', '🌍', '🌎', '🌏', '⭐', '🌙', '☄️', '🌠', '🌌', '🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗',
+    '🚀', '🌍', '🌎', '��', '⭐', '🌙', '☄️', '🌠', '🌌', '🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗',
     // Animals & Pets
     '🦊', '🦁', '🐯', '🐸', '🐼', '🐨', '🦒', '🦝', '🦨', '🦡', '🦃', '🐓', '🦅', '🦆', '🦉', '🦚',
     // Food & Drink
@@ -188,47 +189,6 @@ const Bots: React.FC = () => {
   const addLog = (message: string): void => {
     const timestamp = new Date().toLocaleTimeString()
     setLogs(prev => [...prev, `[${timestamp}] ${message}`])
-  }
-
-  const handleMasterAccountTypeChange = (type: MasterAccount['type']): void => {
-    const newMasterAccount: MasterAccount = {
-      type,
-      connectionType: 'MT4', // Default to MT4
-      credentials: {
-        username: '',
-        password: '',
-        server: ''
-      }
-    }
-    updateBot(bot.id, {
-      masterAccount: newMasterAccount
-    })
-    addLog(`Master account type changed to ${type}`)
-  }
-
-  const handleMasterAccountConnectionTypeChange = (connectionType: MasterAccount['connectionType']): void => {
-    if (bot.masterAccount) {
-      updateBot(bot.id, {
-        masterAccount: {
-          ...bot.masterAccount,
-          connectionType
-        }
-      })
-    }
-  }
-
-  const handleMasterAccountCredentialsChange = (
-    field: keyof MasterAccount['credentials'],
-    value: string
-  ): void => {
-    if (bot.masterAccount) {
-      updateBot(bot.id, {
-        masterAccount: {
-          ...bot.masterAccount,
-          credentials: { ...bot.masterAccount.credentials, [field]: value }
-        }
-      })
-    }
   }
 
   const handleAddTargetAccount = async (): Promise<void> => {
@@ -418,47 +378,6 @@ const Bots: React.FC = () => {
       console.error('Error syncing accounts:', error)
       addLog(`Error syncing accounts: ${error instanceof Error ? error.message : 'Unknown error'}`)
       addAlert('error', `Error syncing accounts: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    }
-  }
-
-  const renderCredentialsForm = (): JSX.Element => {
-    switch (bot.masterAccount.connectionType) {
-      case 'MT4':
-      case 'MT5':
-      case 'cTrader':
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Username</label>
-              <input
-                type="text"
-                value={bot.masterAccount.credentials.username}
-                onChange={(e) => handleMasterAccountCredentialsChange('username', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <input
-                type="password"
-                value={bot.masterAccount.credentials.password}
-                onChange={(e) => handleMasterAccountCredentialsChange('password', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Server</label>
-              <input
-                type="text"
-                value={bot.masterAccount.credentials.server || ''}
-                onChange={(e) => handleMasterAccountCredentialsChange('server', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              />
-            </div>
-          </div>
-        )
-      default:
-        return <div>Unsupported connection type</div>
     }
   }
 
@@ -680,43 +599,11 @@ const Bots: React.FC = () => {
         <div className="flex flex-col flex-1 min-h-0 relative">
           <div className={getMainContentClassName()}>
             {/* Left Side - Master Account */}
-            <div className="w-2/5 bg-base-300 rounded-lg p-6 overflow-auto">
-              <h2 className="text-xl font-semibold mb-4">Master Account</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-base-content/70 mb-2">Select Master Account Type</label>
-                  <select
-                    className="select select-bordered w-full"
-                    value={bot.masterAccount?.type || ''}
-                    onChange={(e) => handleMasterAccountTypeChange(e.target.value as MasterAccount['type'])}
-                  >
-                    <option value="">Select a type</option>
-                    <option value="NinjaTrader">NinjaTrader</option>
-                    <option value="MetaTrader">MetaTrader</option>
-                    <option value="TradingView">TradingView</option>
-                  </select>
-                </div>
-
-                {bot.masterAccount && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm text-base-content/70 mb-2">Connection Type</label>
-                      <select
-                        className="select select-bordered w-full"
-                        value={bot.masterAccount.connectionType}
-                        onChange={(e) => handleMasterAccountConnectionTypeChange(e.target.value as MasterAccount['connectionType'])}
-                      >
-                        <option value="MT4">MT4</option>
-                        <option value="MT5">MT5</option>
-                        <option value="cTrader">cTrader</option>
-                      </select>
-                    </div>
-
-                    {renderCredentialsForm()}
-                  </div>
-                )}
-              </div>
-            </div>
+            <MasterAccountCard 
+              bot={bot}
+              onUpdate={(updates) => updateBot(bot.id, updates)}
+              onAddLog={addLog}
+            />
 
             {/* Right Side - Target Accounts */}
             <div className="w-3/5 bg-base-300 rounded-lg p-6 overflow-auto">
@@ -1099,65 +986,6 @@ const Bots: React.FC = () => {
                   className="btn btn-ghost btn-xs opacity-50 hover:opacity-100"
                   onClick={() => window.store.openLogsDirectory()}
                 >Open logs</button>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="join">
-                  <button
-                    className={`join-item btn btn-sm ${isTailing ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setIsTailing(prev => !prev)}
-                    title={isTailing ? 'Disable auto-scroll' : 'Enable auto-scroll'}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 19V5M12 19l-4-4M12 19l4-4" />
-                    </svg>
-                  </button>
-                  <button
-                    className={`join-item btn btn-sm ${isReversed ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setIsReversed(prev => !prev)}
-                    title={isReversed ? 'Show newest last' : 'Show newest first'}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M5 12a1 1 0 102 0V6.414l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L5 6.414V12zM15 8a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z" />
-                    </svg>
-                  </button>
-                </div>
-                <div className="join">
-                  <button
-                    className={`join-item btn btn-sm ${logSize === 'normal' ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setLogSize('normal')}
-                    title="Normal size"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="4" y="4" width="16" height="16" rx="2" />
-                      <rect x="8" y="8" width="8" height="8" />
-                    </svg>
-                  </button>
-                  <button
-                    className={`join-item btn btn-sm ${logSize === 'half' ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setLogSize('half')}
-                    title="Half screen"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <line x1="3" y1="12" x2="21" y2="12" />
-                    </svg>
-                  </button>
-                  <button
-                    className={`join-item btn btn-sm ${logSize === 'full' ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setLogSize('full')}
-                    title="Full screen"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-                    </svg>
-                  </button>
-                </div>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setLogs([])}
-                >
-                  Clear
-                </button>
               </div>
             </div>
             <div

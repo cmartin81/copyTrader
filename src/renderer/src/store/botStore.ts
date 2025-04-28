@@ -1,14 +1,14 @@
 import { create } from 'zustand'
-import { v4 as uuidv4 } from 'uuid'
-import { useAppStore } from './index'
+import { Bot, MasterAccount } from '../types/bot'
 
 export interface MasterAccount {
-  type: 'PropFirm' | 'Personal'
-  connectionType: 'MT4' | 'MT5' | 'cTrader'
+  type: 'PropFirm' | 'Personal' | 'Rithmic'
+  connectionType: 'MT4' | 'MT5' | 'cTrader' | 'Rithmic'
   credentials: {
     username: string
     password: string
     server?: string
+    location?: string
   }
 }
 
@@ -39,58 +39,38 @@ export interface Bot {
       isEditing: boolean
     }[]
   }[]
-  masterAccount: MasterAccount
+  masterAccount?: MasterAccount
 }
 
-interface BotStore {
+export interface BotStore {
   bots: Bot[]
-  addBot: (bot: Omit<Bot, 'id'>) => Promise<void>
+  masterAccounts: MasterAccount[]
+  addBot: (bot: Omit<Bot, 'id' | 'isRunning' | 'isActive' | 'pnl'>) => Promise<Bot>
   updateBot: (id: string, updates: Partial<Bot>) => Promise<void>
   deleteBot: (id: string) => Promise<void>
-  toggleBot: (id: string) => Promise<void>
-  updateBotPnl: (id: string, pnl: number) => Promise<void>
+  addMasterAccount: (account: Omit<MasterAccount, 'id'>) => Promise<void>
+  updateMasterAccount: (id: string, updates: Partial<MasterAccount>) => Promise<void>
+  deleteMasterAccount: (id: string) => Promise<void>
 }
 
 export const useBotStore = create<BotStore>((set, get) => ({
   bots: [],
+  masterAccounts: [],
   addBot: async (bot) => {
-    const newBot = { ...bot, id: uuidv4() }
-    set((state) => ({ bots: [...state.bots, newBot] }))
+    const newBot: Bot = {
+      ...bot,
+      id: crypto.randomUUID(),
+      isRunning: false,
+      isActive: false,
+      pnl: 0
+    }
+    set((state) => ({
+      bots: [...state.bots, newBot]
+    }))
     window.electron.ipcRenderer.send('set-bots', get().bots)
+    return newBot
   },
   updateBot: async (id, updates) => {
-    if (updates.targetAccounts) {
-      // Only encrypt passwords for accounts that have a new password
-      const encryptedAccounts = await Promise.all(
-        updates.targetAccounts.map(async (account) => {
-          if (account.credentials?.password) {
-            // Only encrypt if the password is different from the original
-            const originalAccount = get().bots.find(b => b.id === id)?.targetAccounts.find(a => a.id === account.id)
-            if (originalAccount?.credentials?.password !== account.credentials.password) {
-              try {
-                const encryptedPassword = await window.electron.ipcRenderer.invoke('encrypt-password', account.credentials.password)
-                return {
-                  ...account,
-                  credentials: {
-                    ...account.credentials,
-                    password: encryptedPassword
-                  }
-                }
-              } catch (error) {
-                console.error('Error encrypting password:', error)
-                return account
-              }
-            }
-          }
-          return account
-        })
-      )
-      updates = {
-        ...updates,
-        targetAccounts: encryptedAccounts
-      }
-    }
-
     set((state) => ({
       bots: state.bots.map((bot) =>
         bot.id === id ? { ...bot, ...updates } : bot
@@ -99,23 +79,33 @@ export const useBotStore = create<BotStore>((set, get) => ({
     window.electron.ipcRenderer.send('set-bots', get().bots)
   },
   deleteBot: async (id) => {
-    set((state) => ({ bots: state.bots.filter((bot) => bot.id !== id) }))
-    window.electron.ipcRenderer.send('set-bots', get().bots)
-  },
-  toggleBot: async (id) => {
     set((state) => ({
-      bots: state.bots.map((bot) =>
-        bot.id === id ? { ...bot, isRunning: !bot.isRunning } : bot
-      )
+      bots: state.bots.filter((bot) => bot.id !== id)
     }))
     window.electron.ipcRenderer.send('set-bots', get().bots)
   },
-  updateBotPnl: async (id, pnl) => {
+  addMasterAccount: async (account) => {
+    const newAccount: MasterAccount = {
+      ...account,
+      id: crypto.randomUUID()
+    }
     set((state) => ({
-      bots: state.bots.map((bot) =>
-        bot.id === id ? { ...bot, pnl } : bot
+      masterAccounts: [...state.masterAccounts, newAccount]
+    }))
+    window.electron.ipcRenderer.send('set-master-accounts', get().masterAccounts)
+  },
+  updateMasterAccount: async (id, updates) => {
+    set((state) => ({
+      masterAccounts: state.masterAccounts.map((account) =>
+        account.id === id ? { ...account, ...updates } : account
       )
     }))
-    window.electron.ipcRenderer.send('set-bots', get().bots)
+    window.electron.ipcRenderer.send('set-master-accounts', get().masterAccounts)
+  },
+  deleteMasterAccount: async (id) => {
+    set((state) => ({
+      masterAccounts: state.masterAccounts.filter((account) => account.id !== id)
+    }))
+    window.electron.ipcRenderer.send('set-master-accounts', get().masterAccounts)
   }
 }))
