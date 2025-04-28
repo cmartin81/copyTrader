@@ -43,7 +43,7 @@ const MasterAccountCard: React.FC<MasterAccountCardProps> = ({ bot, onUpdate, on
       masterAccount: undefined
     })
     setTempMasterAccount({
-      type: 'PropFirm',
+      type: '' as MasterAccount['type'],
       connectionType: 'MT4',
       credentials: {
         username: '',
@@ -221,7 +221,28 @@ const MasterAccountCard: React.FC<MasterAccountCardProps> = ({ bot, onUpdate, on
 
   return (
     <div className="w-2/5 bg-base-300 rounded-lg p-6 overflow-auto">
-      <h2 className="text-xl font-semibold mb-4">Master Account</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Master Account</h2>
+        {!isEditing && bot.masterAccount && (
+          <div className="flex space-x-2">
+            <button
+              className="btn btn-error btn-sm"
+              onClick={handleDeleteMasterAccount}
+            >
+              Delete
+            </button>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                setTempMasterAccount({ ...bot.masterAccount })
+                setIsEditing(true)
+              }}
+            >
+              Edit
+            </button>
+          </div>
+        )}
+      </div>
       
       {!bot.masterAccount && !isEditing ? (
         <div className="flex flex-col items-center justify-center h-full">
@@ -234,31 +255,60 @@ const MasterAccountCard: React.FC<MasterAccountCardProps> = ({ bot, onUpdate, on
         </div>
       ) : (
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm text-base-content/70 mb-2">Select Master Account Type</label>
-            <select
-              className="select select-bordered w-full"
-              value={isEditing ? tempMasterAccount?.type : bot.masterAccount?.type}
-              onChange={(e) => handleMasterAccountTypeChange(e.target.value as MasterAccount['type'])}
-              disabled={!isEditing}
-            >
-              <option value="">Select a type</option>
-              <option value="PropFirm">Prop Firm</option>
-              <option value="Personal">Personal</option>
-              <option value="Rithmic">Rithmic</option>
-            </select>
-          </div>
+          {isEditing ? (
+            <div>
+              <label className="block text-sm text-base-content/70 mb-2">Select Master Account Type</label>
+              <select
+                className="select select-bordered w-full"
+                value={tempMasterAccount?.type}
+                onChange={(e) => handleMasterAccountTypeChange(e.target.value as MasterAccount['type'])}
+              >
+                <option value="">Select a type</option>
+                <option value="PropFirm">Prop Firm</option>
+                <option value="Personal">Personal</option>
+                <option value="Rithmic">Rithmic</option>
+              </select>
+            </div>
+          ) : (
+            <div className="bg-base-200 rounded-lg p-4">
+              <div className="space-y-3">
+                <div>
+                  <span className="text-sm text-base-content/70">Type:</span>
+                  <p className="font-medium">{bot.masterAccount?.type}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-base-content/70">Connection:</span>
+                  <p className="font-medium">{bot.masterAccount?.connectionType}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-base-content/70">Username:</span>
+                  <p className="font-medium">{bot.masterAccount?.credentials.username}</p>
+                </div>
+                {bot.masterAccount?.credentials.server && (
+                  <div>
+                    <span className="text-sm text-base-content/70">Server:</span>
+                    <p className="font-medium">{bot.masterAccount.credentials.server}</p>
+                  </div>
+                )}
+                {bot.masterAccount?.credentials.location && (
+                  <div>
+                    <span className="text-sm text-base-content/70">Location:</span>
+                    <p className="font-medium">{bot.masterAccount.credentials.location}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
-          {(isEditing ? tempMasterAccount : bot.masterAccount) && (
+          {isEditing && tempMasterAccount && (
             <div className="space-y-4">
-              {(isEditing ? tempMasterAccount?.type : bot.masterAccount?.type) !== 'Rithmic' && (
+              {tempMasterAccount.type !== 'Rithmic' && (
                 <div>
                   <label className="block text-sm text-base-content/70 mb-2">Connection Type</label>
                   <select
                     className="select select-bordered w-full"
-                    value={isEditing ? tempMasterAccount?.connectionType : bot.masterAccount?.connectionType}
+                    value={tempMasterAccount.connectionType}
                     onChange={(e) => handleMasterAccountConnectionTypeChange(e.target.value as MasterAccount['connectionType'])}
-                    disabled={!isEditing}
                   >
                     <option value="MT4">MT4</option>
                     <option value="MT5">MT5</option>
@@ -270,43 +320,21 @@ const MasterAccountCard: React.FC<MasterAccountCardProps> = ({ bot, onUpdate, on
               {renderCredentialsForm()}
 
               <div className="flex justify-end space-x-2">
-                {isEditing ? (
-                  <>
-                    <button
-                      className="btn btn-ghost"
-                      onClick={() => {
-                        setIsEditing(false)
-                        setTempMasterAccount(null)
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      className="btn btn-primary"
-                      onClick={handleSaveMasterAccount}
-                    >
-                      Save
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      className="btn btn-error"
-                      onClick={handleDeleteMasterAccount}
-                    >
-                      Delete
-                    </button>
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => {
-                        setTempMasterAccount({ ...bot.masterAccount })
-                        setIsEditing(true)
-                      }}
-                    >
-                      Edit
-                    </button>
-                  </>
-                )}
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setIsEditing(false)
+                    setTempMasterAccount(null)
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSaveMasterAccount}
+                >
+                  Save
+                </button>
               </div>
             </div>
           )}
