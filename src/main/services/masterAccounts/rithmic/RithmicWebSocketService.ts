@@ -1,5 +1,6 @@
 import { WebSocket } from 'ws'
 import { RithmicProtoLoader } from './proto/RithmicProtoLoader'
+import { AbstractMasterAccount, Status } from "../AbstractMasterAccount";
 
 interface RithmicWebSocketConfig {
   url: string
@@ -21,7 +22,7 @@ interface RithmicWebSocketState {
   tradeRoute?: string
 }
 
-export class RithmicWebSocketService {
+export class RithmicWebSocketService extends AbstractMasterAccount {
   private ws: WebSocket | null = null
   private config: RithmicWebSocketConfig
   private state: RithmicWebSocketState = {
@@ -37,18 +38,26 @@ export class RithmicWebSocketService {
   orderPlacementToString: { [x: number]: string } = {}
 
   constructor(config: RithmicWebSocketConfig) {
+    super()
+
     this.config = {
       appName: 'RithmicWebSocketService',
       appVersion: '1.0.0',
       infraType: 'ORDER_PLANT',
       ...config
     }
+
     this.protoLoader = RithmicProtoLoader.getInstance()
     this.setupMessageHandlers()
     this.defineMappings()
     setInterval(() => {
       if (this.state.isConnected) {
         process.stdout.write('❤️');
+        super.emit('order', {
+          sourceSymbolId: 'XYZ',
+          orderSize: 1,
+        })
+
         this.sendHeartbeat()
       }
     }, 10 * 1000)
@@ -87,7 +96,16 @@ export class RithmicWebSocketService {
     this.messageHandlers.set(309, this.handleGenericSubscribeForOrderUpdates.bind(this))
   }
 
-  public connect(): Promise<void> {
+  public async start() {
+    console.log('Starting Rithmic WebSocket service...');
+    await this.connect()
+    this.subscribeToOrders();
+    console.log('Rithmic WebSocket service started');
+    this.setStatus(Status.running)
+    return true
+  }
+
+  private connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
         this.ws = new WebSocket(this.config.url, {

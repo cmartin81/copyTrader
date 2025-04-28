@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { ProjectXBrowser } from '../services/projectX/ProjectXBrowser'
-const projectXTypes = ['Topstepx', 'Bulenox','TheFuturesDesk', 'TickTickTrader']
+const projectXTypes = ['TopstepX', 'Bulenox','TheFuturesDesk', 'TickTickTrader']
 export function setupAccountHandlers(): void {
   ipcMain.handle('getPlatformInfo', async (_event, { type, credentials }) => {
     try {
