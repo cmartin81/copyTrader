@@ -1,8 +1,8 @@
 export interface MasterAccount {
   id: string
   name: string
-  type: 'Rithmic' | 'NinjaTrader' | 'Tradovate'
-  connectionType: 'Rithmic' | 'NinjaTrader' | 'Tradovate'
+  type: 'PropFirm' | 'Personal' | 'Rithmic' | 'Test'
+  connectionType: 'MT4' | 'MT5' | 'cTrader' | 'Rithmic' | 'Test'
   credentials: {
     username?: string
     password?: string
@@ -15,7 +15,7 @@ export interface MasterAccount {
 export interface Bot {
   id: string
   name: string
-  masterAccount: MasterAccount
+  masterAccount?: MasterAccount
   targetAccounts: MasterAccount[]
   isRunning: boolean
   isActive: boolean

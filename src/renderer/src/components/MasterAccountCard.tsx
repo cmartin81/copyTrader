@@ -37,14 +37,18 @@ interface MasterAccountCardProps {
 const MasterAccountCard: React.FC<MasterAccountCardProps> = ({ bot, onUpdate, onAddLog }) => {
   const [isEditing, setIsEditing] = useState(false)
   const [tempMasterAccount, setTempMasterAccount] = useState<MasterAccount | null>(null)
+  const [source, setSource] = useState('')
+  const [contracts, setContracts] = useState('0')
 
   const handleCreateMasterAccount = (): void => {
     onUpdate({
       masterAccount: undefined
     })
     setTempMasterAccount({
-      type: '' as MasterAccount['type'],
-      connectionType: 'MT4',
+      id: crypto.randomUUID(),
+      name: 'Test Account',
+      type: 'Test',
+      connectionType: 'Test',
       credentials: {
         username: '',
         password: '',
@@ -69,13 +73,6 @@ const MasterAccountCard: React.FC<MasterAccountCardProps> = ({ bot, onUpdate, on
     if (!tempMasterAccount) return
 
     try {
-      // Encrypt the password if it's different from the original
-      const originalPassword = bot.masterAccount?.credentials.password
-      if (tempMasterAccount.credentials.password && tempMasterAccount.credentials.password !== originalPassword) {
-        const encryptedPassword = await window.electron.ipcRenderer.invoke('encrypt-password', tempMasterAccount.credentials.password)
-        tempMasterAccount.credentials.password = encryptedPassword
-      }
-
       onUpdate({
         masterAccount: tempMasterAccount
       })
@@ -83,8 +80,8 @@ const MasterAccountCard: React.FC<MasterAccountCardProps> = ({ bot, onUpdate, on
       setTempMasterAccount(null)
       onAddLog('Master account saved')
     } catch (error) {
-      console.error('Error encrypting password:', error)
-      onAddLog('Error saving master account: Failed to encrypt password')
+      console.error('Error saving master account:', error)
+      onAddLog('Error saving master account')
     }
   }
 
@@ -93,7 +90,7 @@ const MasterAccountCard: React.FC<MasterAccountCardProps> = ({ bot, onUpdate, on
       setTempMasterAccount({
         ...tempMasterAccount,
         type,
-        connectionType: type === 'Rithmic' ? 'Rithmic' : 'MT4',
+        connectionType: type === 'Rithmic' ? 'Rithmic' : type === 'Test' ? 'Test' : 'MT4',
         credentials: {
           ...tempMasterAccount.credentials,
           server: '',
@@ -129,6 +126,8 @@ const MasterAccountCard: React.FC<MasterAccountCardProps> = ({ bot, onUpdate, on
     if (!account) return <div>No account selected</div>
 
     switch (account.connectionType) {
+      case 'Test':
+        return <></>
       case 'MT4':
       case 'MT5':
       case 'cTrader':
@@ -267,6 +266,7 @@ const MasterAccountCard: React.FC<MasterAccountCardProps> = ({ bot, onUpdate, on
                 <option value="PropFirm">Prop Firm</option>
                 <option value="Personal">Personal</option>
                 <option value="Rithmic">Rithmic</option>
+                <option value="Test">Test</option>
               </select>
             </div>
           ) : (
@@ -276,25 +276,79 @@ const MasterAccountCard: React.FC<MasterAccountCardProps> = ({ bot, onUpdate, on
                   <span className="text-sm text-base-content/70">Type:</span>
                   <p className="font-medium">{bot.masterAccount?.type}</p>
                 </div>
-                <div>
-                  <span className="text-sm text-base-content/70">Connection:</span>
-                  <p className="font-medium">{bot.masterAccount?.connectionType}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-base-content/70">Username:</span>
-                  <p className="font-medium">{bot.masterAccount?.credentials.username}</p>
-                </div>
-                {bot.masterAccount?.credentials.server && (
-                  <div>
-                    <span className="text-sm text-base-content/70">Server:</span>
-                    <p className="font-medium">{bot.masterAccount.credentials.server}</p>
-                  </div>
-                )}
-                {bot.masterAccount?.credentials.location && (
-                  <div>
-                    <span className="text-sm text-base-content/70">Location:</span>
-                    <p className="font-medium">{bot.masterAccount.credentials.location}</p>
-                  </div>
+                {bot.masterAccount?.type === 'Test' ? (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Source</label>
+                      <input
+                        type="text"
+                        value={source}
+                        onChange={(e) => setSource(e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        placeholder="Enter source"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Contracts</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={contracts}
+                        onChange={(e) => setContracts(e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        placeholder="Enter contracts"
+                      />
+                    </div>
+                    <div className="flex space-x-2 mt-4">
+                      <button 
+                        className="btn btn-sm btn-success disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={!source || parseInt(contracts) <= 0}
+                        onClick={() => {
+                          window.electron.ipcRenderer.send('masterAccountBuy', {
+                            source,
+                            contracts: parseInt(contracts)
+                          })
+                        }}
+                      >
+                        Buy
+                      </button>
+                      <button 
+                        className="btn btn-sm btn-error disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={!source || parseInt(contracts) <= 0}
+                        onClick={() => {
+                          window.electron.ipcRenderer.send('masterAccountSell', {
+                            source,
+                            contracts: parseInt(contracts)
+                          })
+                        }}
+                      >
+                        Sell
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <span className="text-sm text-base-content/70">Connection:</span>
+                      <p className="font-medium">{bot.masterAccount?.connectionType}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-base-content/70">Username:</span>
+                      <p className="font-medium">{bot.masterAccount?.credentials.username}</p>
+                    </div>
+                    {bot.masterAccount?.credentials.server && (
+                      <div>
+                        <span className="text-sm text-base-content/70">Server:</span>
+                        <p className="font-medium">{bot.masterAccount.credentials.server}</p>
+                      </div>
+                    )}
+                    {bot.masterAccount?.credentials.location && (
+                      <div>
+                        <span className="text-sm text-base-content/70">Location:</span>
+                        <p className="font-medium">{bot.masterAccount.credentials.location}</p>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -302,7 +356,7 @@ const MasterAccountCard: React.FC<MasterAccountCardProps> = ({ bot, onUpdate, on
 
           {isEditing && tempMasterAccount && (
             <div className="space-y-4">
-              {tempMasterAccount.type !== 'Rithmic' && (
+              {tempMasterAccount.type !== 'Rithmic' && tempMasterAccount.type !== 'Test' && (
                 <div>
                   <label className="block text-sm text-base-content/70 mb-2">Connection Type</label>
                   <select

@@ -2,8 +2,8 @@ import { create } from 'zustand'
 import { Bot, MasterAccount } from '../types/bot'
 
 export interface MasterAccount {
-  type: 'PropFirm' | 'Personal' | 'Rithmic'
-  connectionType: 'MT4' | 'MT5' | 'cTrader' | 'Rithmic'
+  type: 'PropFirm' | 'Personal' | 'Rithmic' | 'Test'
+  connectionType: 'MT4' | 'MT5' | 'cTrader' | 'Rithmic' | 'Test'
   credentials: {
     username: string
     password: string
