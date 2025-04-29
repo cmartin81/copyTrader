@@ -31,9 +31,9 @@ export interface Bot {
     }[]
   }[]
   masterAccount: {
-    type: 'PropFirm' | 'Personal'
-    connectionType: 'MT4' | 'MT5' | 'cTrader'
-    credentials: {
+    type: 'PropFirm' | 'Personal' | 'Rithmic' | 'Test'
+    connectionType: 'MT4' | 'MT5' | 'cTrader' | 'Rithmic' | 'Test'
+    credentials?: {
       username: string
       password: string
       server?: string

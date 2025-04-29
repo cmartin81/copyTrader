@@ -3,12 +3,15 @@ import _ from 'lodash'
 import { ProjectXBrowser } from '../projectX/ProjectXBrowser'
 import { AbstractTargetAccount } from '../projectX/abstractTargetAccount'
 import { ipcMain } from 'electron'
+import { AbstractMasterAccount } from '../masterAccounts/AbstractMasterAccount'
+import { TestMasterAccount } from '../masterAccounts/testMasterAccount'
 
 class BotManager {
   private static instance: BotManager | null = null
   private botSettings: any
   private currentBotId: string | null = null
-  private targets:{[key:string]:AbstractTargetAccount} = {}
+  private targets: { [key: string]: AbstractTargetAccount } = {}
+  private masterAccount?: AbstractMasterAccount
 
   private constructor() {
     // Private constructor to prevent direct instantiation
@@ -16,14 +19,13 @@ class BotManager {
   }
 
   private setupAppStateListener(): void {
-    // Listen for store-send events
+    // Listen for user updates on bot
     ipcMain.on('store-send', (_event, { action, key, value }) => {
       if (action === 'set' && key === 'appState' && this.currentBotId) {
         this.botSettings = _.find(value.bots, { id: this.currentBotId })
       }
     })
 
-    // Also listen for set-bots events
     ipcMain.on('set-bots', (_event, bots) => {
       if (this.currentBotId) {
         this.botSettings = _.find(bots, { id: this.currentBotId })
@@ -40,7 +42,9 @@ class BotManager {
 
   public initialize(botId: string): void {
     if (this.currentBotId && this.currentBotId !== botId) {
-      throw new Error('Cannot initialize new bot while another bot is running. Please stop the current bot first.')
+      throw new Error(
+        'Cannot initialize new bot while another bot is running. Please stop the current bot first.'
+      )
     }
 
     if (!this.currentBotId) {
@@ -74,32 +78,83 @@ class BotManager {
     return this.currentBotId
   }
 
-  public async placeOrderSingelOrder(targetAccountId: string, sourceSymbol, orderSize): Promise<boolean> {
-    const target = this.targets[targetAccountId];
-    const targetSettings = _.find(this.botSettings.targetAccounts, { id: targetAccountId }) ?? {}
-    const targetSymbolMapping = _.find(targetSettings.symbolMappings, mapping => mapping.sourceSymbol === sourceSymbol)
+  private async _placeOrder(targetSetting, sourceSymbol, orderSize): Promise<boolean> {
+    console.log(
+      'BotManager._placeOrder',
+      targetSetting,
+      sourceSymbol,
+      orderSize,
+      this.botSettings
+    )
+
+    const targetAccountId = targetSetting.accountId
+    const targetSymbolMapping = _.find(
+      targetSetting.symbolMappings,
+      (mapping) => mapping.sourceSymbol === sourceSymbol
+    )
     const { targetSymbolId, multiplier } = targetSymbolMapping
-    console.log({
-      targetSymbolId, targetSymbolMapping, targetSettings, realOrder: orderSize * multiplier
-    })
-    if (targetAccountId && targetSymbolId){
-      const result = await target.placeOrder(targetSettings.accountId, targetSymbolId, orderSize*multiplier)
+    const target = this.targets[targetSetting.id]
+    // todo: check if targetbot is "on" and window exist
+
+    if (targetAccountId && targetSymbolId && target) {
+      console.log({
+        targetSymbolId,
+        targetSymbolMapping,
+        targetSetting,
+        realOrder: orderSize * multiplier
+      })
+      const result = await target.placeOrder(
+        targetAccountId,
+        targetSymbolId,
+        orderSize * multiplier
+      )
       return result
     }
+    // todo: if mapping not found, create a mapping
     return false
+  }
+
+  public async placeOrder(sourceSymbol, orderSize): Promise<boolean> {
+    const placeOrderPromises: Promise<boolean>[] = []
+    for (const targetSetting of this.botSettings.targetAccounts) {
+      placeOrderPromises.push(this._placeOrder(targetSetting, sourceSymbol, orderSize))
+    }
+    const results = await Promise.all(placeOrderPromises)
+    return results.includes(true)
+  }
+
+  public async placeSingleOrder(
+    targetAccountId: string,
+    sourceSymbol,
+    orderSize
+  ): Promise<boolean> {
+    const targetSettings = _.find(this.botSettings.targetAccounts, { id: targetAccountId }) ?? {}
+    return await this._placeOrder(targetSettings, sourceSymbol, orderSize)
   }
 
   async start() {
     console.log('BotManager started')
-    if (Object.keys(this.targets).length !== 0) {
-      throw new Error('Cannot start bot Error #S99')
+    // if (Object.keys(this.targets).length !== 0) {
+    //   throw new Error('Cannot start bot Error #S99')
+    // }
+
+    const masterAccount = this.botSettings.masterAccount
+    if (masterAccount.type === 'Test') {
+      this.masterAccount = new TestMasterAccount()
+      await this.masterAccount.start()
+      this.masterAccount.subscribe('order', ({ sourceSymbolId, orderSize }) => {
+        console.log('order', { sourceSymbolId, orderSize })
+        this.placeOrder(sourceSymbolId, orderSize).then((ok) => {
+          console.log(`Order placed (${ok}): `, sourceSymbolId, orderSize);
+        })
+      })
     }
 
     for (const targetAccount of this.botSettings.targetAccounts) {
       console.log('Starting bot for account: ' + targetAccount.type)
-      if (targetAccount.type === 'TopstepX') {
+      if (['TopstepX', 'TopstepX', 'Bulenox', 'TheFuturesDesk', 'TickTickTrader'].includes(targetAccount.type)) {
         const targetBrowser = await ProjectXBrowser.create(
-          'TopstepX',
+          targetAccount.type,
           targetAccount.credentials.username,
           targetAccount.credentials.password
         )
@@ -116,7 +171,6 @@ class BotManager {
         // )
         // console.log({ ...appState, bots: updatedBots })
         // setAppState({ ...appState, bots: updatedBots })
-
       }
     }
     return true

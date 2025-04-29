@@ -20,7 +20,7 @@ export abstract class AbstractMasterAccount {
   // abstract get name(): string
   // abstract get isRunning(): boolean
   abstract start(): Promise<boolean>
-  // abstract stop(): void
+  abstract stop(): Promise<boolean>
 
   constructor() {
     this.emitter = mitt<Events>();
@@ -41,7 +41,7 @@ export abstract class AbstractMasterAccount {
     this.emitter.off(event, handler);
   }
 
-  setStatus(status: Status) {
+  protected setStatus(status: Status) {
     this.status = status
   }
 }

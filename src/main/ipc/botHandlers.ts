@@ -108,7 +108,7 @@ export function setupBotHandlers(activeBrowsers: Map<string, BrowserWindow>): vo
         const botManager = BotManager.getInstance()
         // todo: check if running
         if (botManager.getCurrentBotId() === botId) {
-          await botManager.placeOrderSingelOrder(targetAccountId, sourceSymbol, orderSize)
+          await botManager.placeSingleOrder(targetAccountId, sourceSymbol, orderSize)
           return { success: true }
         }
 
