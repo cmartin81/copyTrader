@@ -1,4 +1,4 @@
-import { getAppState } from '../../store'
+import { getAppState, setAppState } from '../../store'
 import _ from 'lodash'
 import { ProjectXBrowser } from '../projectX/ProjectXBrowser'
 import { AbstractTargetAccount } from '../projectX/abstractTargetAccount'
@@ -92,6 +92,20 @@ class BotManager {
       targetSetting.symbolMappings,
       (mapping) => mapping.sourceSymbol === sourceSymbol
     )
+    if (!targetSymbolMapping) {
+      //todo: make a switch.. for recording new symbols if not found
+      targetSetting.symbolMappings.push({
+        sourceSymbol: sourceSymbol,
+        targetSymbolId: '',
+        isEditing: true,
+        multiplier: 1
+      })
+      this.updateBotStore();
+      return true
+    }
+    if (targetSymbolMapping.isEditing) {
+      return true
+    }
     const { targetSymbolId, multiplier } = targetSymbolMapping
     const target = this.targets[targetSetting.id]
     // todo: check if targetbot is "on" and window exist
@@ -110,8 +124,22 @@ class BotManager {
       )
       return result
     }
-    // todo: if mapping not found, create a mapping
     return false
+  }
+
+  private updateBotStore(): void {
+    if (!this.botSettings || !this.currentBotId) {
+      console.error('[BotManager] Cannot update bot store - Bot is not initialized.');
+      return;
+    }
+
+    const currentState = getAppState();
+    const updatedBots = currentState.bots.map(bot =>
+      bot.id === this.currentBotId ? this.botSettings : bot
+    );
+
+    setAppState({ ...currentState, bots: updatedBots });
+    console.log('[BotManager] botStore updated with new symbol mappings');
   }
 
   public async placeOrder(sourceSymbol, orderSize): Promise<boolean> {
