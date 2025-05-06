@@ -1,5 +1,6 @@
 import * as protobuf from 'protobufjs';
 import * as path from 'path';
+import * as fs from 'fs';
 
 export class RithmicProtoLoader {
   private static instance: RithmicProtoLoader;
@@ -44,7 +45,13 @@ export class RithmicProtoLoader {
 
     protoFiles.forEach(file => {
       try {
-        this.root.loadSync(path.join(__dirname, file));
+        let protoPath = path.join(process.cwd(), 'out/main/services/masterAccounts/rithmic/proto', file);
+        if (!fs.existsSync(protoPath)) {
+          // Fallback when file doesn't exist
+          protoPath = path.join(__dirname, file);
+        }
+
+        this.root.loadSync(protoPath);
       } catch (error) {
         console.error(`Error loading proto file ${file}:`, error);
       }
@@ -65,4 +72,4 @@ export class RithmicProtoLoader {
     const MessageType = this.getMessageType(messageName);
     return MessageType.decode(buffer);
   }
-} 
+}

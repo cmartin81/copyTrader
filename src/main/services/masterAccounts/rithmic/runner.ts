@@ -1,4 +1,4 @@
-import { RithmicWebSocketService } from './RithmicWebSocketService'
+import { RithmicWsMasterAccount } from './RithmicWsMasterAccount'
 
 const config = {
   url: process.env.RITHMIC_WS_URL || 'wss://rituz00100.rithmic.com:443',
@@ -11,7 +11,7 @@ const config = {
 
 async function start() {
 
-  const service = new RithmicWebSocketService(config)
+  const service = new RithmicWsMasterAccount(config)
 
   try {
     await service.start()

@@ -5,6 +5,7 @@ import { AbstractTargetAccount } from '../projectX/abstractTargetAccount'
 import { ipcMain } from 'electron'
 import { AbstractMasterAccount } from '../masterAccounts/AbstractMasterAccount'
 import { TestMasterAccount } from '../masterAccounts/testMasterAccount'
+import { RithmicWsMasterAccount } from "../masterAccounts/rithmic/RithmicWsMasterAccount";
 
 class BotManager {
   private static instance: BotManager | null = null
@@ -160,6 +161,17 @@ class BotManager {
     return await this._placeOrder(targetSettings, sourceSymbol, orderSize)
   }
 
+  startSubsubscribingToMasterAccount(){
+    if (this.currentBotId && this.masterAccount) {
+      this.masterAccount.subscribe('order', ({ sourceSymbolId, orderSize }) => {
+        console.log('order', { sourceSymbolId, orderSize })
+        this.placeOrder(sourceSymbolId, orderSize).then((ok) => {
+          console.log(`Order placed (${ok}): `, sourceSymbolId, orderSize);
+        })
+      })
+    }
+  }
+
   async start() {
     console.log('BotManager started')
     // if (Object.keys(this.targets).length !== 0) {
@@ -170,13 +182,19 @@ class BotManager {
     if (masterAccount.type === 'Test') {
       this.masterAccount = new TestMasterAccount()
       await this.masterAccount.start()
-      this.masterAccount.subscribe('order', ({ sourceSymbolId, orderSize }) => {
-        console.log('order', { sourceSymbolId, orderSize })
-        this.placeOrder(sourceSymbolId, orderSize).then((ok) => {
-          console.log(`Order placed (${ok}): `, sourceSymbolId, orderSize);
-        })
-      })
+    } else if (masterAccount.type === 'Rithmic') {
+      const config = {
+        url: process.env.RITHMIC_WS_URL || 'wss://rituz00100.rithmic.com:443',
+        userId: process.env.RITHMIC_USER_ID || 'andy@goat-algo.net',
+        password: process.env.RITHMIC_PASSWORD || 'jBMHOPAY',
+        systemName: process.env.RITHMIC_SYSTEM_NAME || 'Rithmic Test',
+        ibId: 'Prospects',
+        fcmId: 'Rithmic-FCM'
+      }
+      this.masterAccount = new RithmicWsMasterAccount(config)
+      await this.masterAccount.start()
     }
+    this.startSubsubscribingToMasterAccount()
 
     for (const targetAccount of this.botSettings.targetAccounts) {
       console.log('Starting bot for account: ' + targetAccount.type)

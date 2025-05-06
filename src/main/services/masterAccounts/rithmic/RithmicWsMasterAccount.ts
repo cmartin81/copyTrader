@@ -22,9 +22,8 @@ interface RithmicWebSocketState {
   tradeRoute?: string
 }
 
-export class RithmicWebSocketService extends AbstractMasterAccount {
+export class RithmicWsMasterAccount extends AbstractMasterAccount {
   private ws: WebSocket | null = null
-  private config: RithmicWebSocketConfig
   private state: RithmicWebSocketState = {
     isConnected: false
   }
@@ -52,11 +51,11 @@ export class RithmicWebSocketService extends AbstractMasterAccount {
     this.defineMappings()
     setInterval(() => {
       if (this.state.isConnected) {
-        process.stdout.write('❤️');
-        super.emit('order', {
-          sourceSymbolId: 'XYZ',
-          orderSize: 1,
-        })
+        process.stdout.write('❤️')
+        // super.emit('order', {
+        //   sourceSymbolId: 'XYZ',
+        //   orderSize: 1,
+        // })
 
         this.sendHeartbeat()
       }
@@ -96,11 +95,15 @@ export class RithmicWebSocketService extends AbstractMasterAccount {
     this.messageHandlers.set(309, this.handleGenericSubscribeForOrderUpdates.bind(this))
   }
 
+  stop(): Promise<boolean> {
+    throw new Error('Method not implemented.')
+  }
+
   public async start() {
-    console.log('Starting Rithmic WebSocket service...');
+    console.log('Starting Rithmic WebSocket service...')
     await this.connect()
-    this.subscribeToOrders();
-    console.log('Rithmic WebSocket service started');
+    this.subscribeToOrders()
+    console.log('Rithmic WebSocket service started')
     this.setStatus(Status.running)
     return true
   }
@@ -117,7 +120,7 @@ export class RithmicWebSocketService extends AbstractMasterAccount {
           this.state.isConnected = true
           this.reconnectAttempts = 0
           this.authenticate().then(() => {
-            console.log('DONE my job here...');
+            console.log('DONE my job here...')
 
             resolve()
           })
@@ -177,7 +180,7 @@ export class RithmicWebSocketService extends AbstractMasterAccount {
       } else {
         this.state.lastError = message.userMsg.join(', ') + ' (' + message.rpCode.join(' ,') + ')'
         console.error('Authentication failed:', this.state.lastError)
-        console.log('222222');
+        console.log('222222')
 
         this.handleDisconnect()
       }
@@ -189,8 +192,7 @@ export class RithmicWebSocketService extends AbstractMasterAccount {
   private handleGenericSubscribeForOrderUpdates(data: Buffer): void {
     try {
       const message = this.protoLoader.decodeMessage('ResponseSubscribeForOrderUpdates', data)
-      console.log({message});
-
+      console.log({ message })
     } catch (error) {
       console.error('Error handling order notification:', error)
     }
@@ -208,9 +210,23 @@ export class RithmicWebSocketService extends AbstractMasterAccount {
       // });
       if (message.status === 'complete' && message.totalFillSize !== 0) {
         // console.log(message)
-        const executionType = this.priceTypeToString[message.priceType]
+        // const executionType = this.priceTypeToString[message.priceType]
         const type = this.transactionTypeToString[message.transactionType]
-        console.log(`${type} ${executionType} ${message.quantity}x${message.symbol}`)
+        console.log('Order completed!!')
+        // console.log(`${type} ${executionType} ${message.quantity}x${message.symbol}`)
+        let orderSize = message.quantity
+        if (type === 'SELL') {
+          orderSize = orderSize * -1
+        } else if (type === 'BUY') {
+          orderSize = Math.abs(orderSize)
+        } else {
+          console.log(`Could not define what kind of transaction type (${type})`)
+          return
+        }
+        this.emit('order', {
+          sourceSymbolId: message.symbol,
+          orderSize
+        })
       }
     } catch (error) {
       console.error('Error handling order notification:', error)
@@ -236,7 +252,7 @@ export class RithmicWebSocketService extends AbstractMasterAccount {
   private handleHeartbeatResponse(data: Buffer): void {
     try {
       const message = this.protoLoader.decodeMessage('ResponseHeartbeat', data)
-      process.stdout.write('💞');
+      process.stdout.write('💞')
 
       // console.log('Heartbeat received')
       // console.log(message)
@@ -313,7 +329,7 @@ export class RithmicWebSocketService extends AbstractMasterAccount {
   }
 
   public disconnect(): void {
-    console.log('disconnecting');
+    console.log('disconnecting')
 
     if (this.ws) {
       const logoutMessage = {
