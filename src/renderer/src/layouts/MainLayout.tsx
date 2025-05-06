@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useBotStore } from '../store/botStore'
 import { useSessionStore } from '../store/sessionStore'
 import Alert from '../components/Alert'
-import copyTraderLogo from '@renderer/assets/copyTraderLogo1.png'
+import copyTraderLogo from '@renderer/assets/copyTraderLogo2.png'
 
 interface MenuItem {
   name: string
@@ -30,7 +30,7 @@ const MainLayout = (): JSX.Element => {
       const response = await addBot(newBot)
       setNewBotName('')
       setIsAddBotModalOpen(false)
-      
+
       // Navigate to the newly created bot using the response
       if (response && response.id) {
         navigate(`/bots/${response.id}`)
@@ -69,10 +69,10 @@ const MainLayout = (): JSX.Element => {
           <div className="p-4 mb-8">
             <div className="flex items-center">
               <div className="w-10 h-10 flex items-center justify-center">
-                <img 
-                  src={copyTraderLogo} 
-                  alt="CopyTrader Logo" 
-                  className="w-full h-full object-contain rounded-xl"
+                <img
+                  src={copyTraderLogo}
+                  alt="CopyTrader Logo"
+                  className="rounded-sm"
                 />
               </div>
               <div className="flex flex-col pl-3">
@@ -81,7 +81,7 @@ const MainLayout = (): JSX.Element => {
               </div>
             </div>
           </div>
-          
+
           {/* Menu items */}
           <nav className="space-y-1.5 px-2">
             {menuItems.map((item) => (
@@ -105,7 +105,7 @@ const MainLayout = (): JSX.Element => {
                     </>
                   )}
                 </NavLink>
-                
+
                 {/* Place Trading Bots section under Dashboard */}
                 {item.name === 'Dashboard' && (
                   <div className="mt-1 mb-2">
@@ -165,7 +165,7 @@ const MainLayout = (): JSX.Element => {
             ))}
           </nav>
         </div>
-        
+
         {/* User info */}
         <div className="p-4 mt-auto border-t border-base-content/10 pt-4 pb-6">
           <div className="dropdown dropdown-top w-full">
@@ -233,7 +233,7 @@ const MainLayout = (): JSX.Element => {
           </div>
         </div>
       </aside>
-      
+
       {/* Main content */}
       <div className="flex-1 flex flex-col">
         <main className="flex-1 bg-base-200 overflow-y-auto">
@@ -287,4 +287,4 @@ const MainLayout = (): JSX.Element => {
   )
 }
 
-export default MainLayout 
+export default MainLayout
