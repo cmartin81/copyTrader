@@ -66,9 +66,37 @@ class BotManager {
   }
 
   public async stop(): Promise<void> {
-    console.log('BotManager stopped')
+    console.log('BotManager stopping all targets')
+
+    // Close all target browsers
+    for (const targetId in this.targets) {
+      try {
+        await this.targets[targetId].stop()
+        console.log(`Stopped target: ${targetId}`)
+      } catch (error) {
+        console.error(`Error stopping target ${targetId}:`, error)
+      }
+    }
+
+    // Stop master account if it exists
+    if (this.masterAccount) {
+      try {
+        await this.masterAccount.stop()
+        console.log('Stopped master account')
+      } catch (error) {
+        console.error('Error stopping master account:', error)
+      }
+      this.masterAccount = undefined
+    }
+
+    // Clear targets
+    this.targets = {}
+
+    // Reset state
     this.currentBotId = null
     this.botSettings = null
+
+    console.log('BotManager stopped')
   }
 
   public isInitialized(): boolean {

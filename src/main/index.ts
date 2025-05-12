@@ -23,6 +23,9 @@ let mainWindow: BrowserWindow | null = null
 // Store active browser instances
 const activeBrowsers = new Map<string, BrowserWindow>()
 
+// Flag to track if bot windows have been closed
+let botWindowsClosed = false
+
 // Initialize puppeteer-in-electron before app is ready
 pie.initialize(app).catch(console.error);
 
@@ -51,6 +54,35 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
+  })
+
+  // Handle the close event on the main window
+  mainWindow.on('close', async (event) => {
+    console.log('Main window close event triggered')
+    logToFile('Main window close event triggered')
+
+    // Prevent the window from closing immediately
+    event.preventDefault()
+
+    // Stop all bots and close their windows if not already closed
+    if (!botWindowsClosed) {
+      try {
+        const botManager = BotManager.getInstance()
+        await botManager.stop()
+        botWindowsClosed = true
+        logToFile('All bot windows closed from main window close event')
+        console.log('All bot windows closed from main window close event')
+      } catch (error) {
+        console.error('Error stopping bots:', error)
+        logToFile(`Error stopping bots: ${error}`)
+      }
+    } else {
+      console.log('Bot windows already closed, continuing with close')
+      logToFile('Bot windows already closed, continuing with close in main window close event')
+    }
+
+    // Now close the window
+    mainWindow?.destroy()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -122,18 +154,61 @@ app.whenReady().then(() => {
   })
 })
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
+
+app.on('window-all-closed', async () => {
+  console.log('All windows closed')
+
+  // Stop all bots and close their windows before quitting (if not already closed)
+  if (!botWindowsClosed) {
+    try {
+      const botManager = BotManager.getInstance()
+      await botManager.stop()
+      botWindowsClosed = true
+      logToFile('All bot windows closed from window-all-closed event')
+      console.log('All bot windows closed from window-all-closed event')
+    } catch (error) {
+      console.error('Error stopping bots:', error)
+      logToFile(`Error stopping bots: ${error}`)
+    }
+  } else {
+    console.log('Bot windows already closed, skipping')
+    logToFile('Bot windows already closed, skipping in window-all-closed')
   }
+
+  // if (process.platform !== 'darwin') {
+    app.quit()
+  // }
 })
 
-// Log app quit
-app.on('before-quit', () => {
+// Log app quit and close all bot windows if not already closed
+app.on('before-quit', async (event) => {
   logToFile('Application quitting')
+
+  // Stop all bots and close their windows if not already closed
+  if (!botWindowsClosed) {
+    // Prevent the app from quitting until we've closed all windows
+    event.preventDefault()
+
+    try {
+      const botManager = BotManager.getInstance()
+      await botManager.stop()
+      botWindowsClosed = true
+      logToFile('All bot windows closed from before-quit event')
+      console.log('All bot windows closed from before-quit event')
+
+      // Now we can quit the app
+      app.quit()
+    } catch (error) {
+      console.error('Error stopping bots:', error)
+      logToFile(`Error stopping bots: ${error}`)
+
+      // Still try to quit even if there was an error
+      app.quit()
+    }
+  } else {
+    console.log('Bot windows already closed, continuing with quit')
+    logToFile('Bot windows already closed, continuing with quit in before-quit')
+  }
 })
 
 // In this file you can include the rest of your app's specific main process

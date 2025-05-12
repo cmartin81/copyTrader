@@ -306,8 +306,9 @@ export class ProjectXBrowser extends AbstractTargetAccount {
   /*
     placeOrder(targetSymbol: string, amount: number) {
         throw new Error("Method not implemented.");
-    }
-    stop() {
-        throw new Error("Method not implemented.");
     }*/
+
+    async stop(): Promise<void> {
+      await this.closeBrowser();
+    }
 }
