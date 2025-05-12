@@ -40,7 +40,7 @@ export class RithmicWsMasterAccount extends AbstractMasterAccount {
     super()
 
     this.config = {
-      appName: 'RithmicWebSocketService',
+      appName: 'TradersVantage CopyTrader',
       appVersion: '1.0.0',
       infraType: 'ORDER_PLANT',
       ...config
