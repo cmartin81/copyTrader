@@ -17,7 +17,5 @@ export interface Bot {
   name: string
   masterAccount?: MasterAccount
   targetAccounts: MasterAccount[]
-  isRunning: boolean
-  isActive: boolean
   pnl: number
-} 
+}

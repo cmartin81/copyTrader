@@ -1,5 +1,5 @@
 import React from 'react'
-import { useSessionStore } from '../store'
+import { useSessionStore } from '../store/sessionStore'
 
 const SessionStateCard: React.FC = () => {
   const sessionState = useSessionStore()
@@ -26,4 +26,4 @@ const SessionStateCard: React.FC = () => {
   )
 }
 
-export default SessionStateCard 
+export default SessionStateCard

@@ -116,7 +116,7 @@ function createWindow(): void {
           ...currentState,
           appCounter: currentState.appCounter + 10,
           bots: currentState.bots?.map(bot => {
-            if (bot.isActive) {
+            if (sessionState.runningBotId === bot.id) {
               return { ...bot, pnl: bot.pnl + 1 }
             }
             return bot

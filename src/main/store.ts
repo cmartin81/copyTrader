@@ -38,15 +38,19 @@ export function updateAppCounter(value: number): void {
 
 // Session state (non-persistent, reset on app restart)
 let sessionState = {
-  sessionCounter: 0
+  sessionCounter: 0,
+  runningBotId: null
 }
 
 export function getSessionState() {
   return sessionState
 }
 
-export function setSessionState(state: { sessionCounter: number }): void {
-  sessionState = state
+export function setSessionState(state: { sessionCounter: number, runningBotId?: string | null }): void {
+  sessionState = {
+    ...sessionState,
+    ...state
+  }
 }
 
 export function updateSessionCounter(value: number): void {

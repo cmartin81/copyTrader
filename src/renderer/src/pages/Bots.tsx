@@ -141,10 +141,12 @@ const Bots: React.FC = () => {
 
   const toggleBotRunning = async (): Promise<void> => {
     try {
-      if (!bot.isRunning) {
+      const isRunning = useSessionStore.getState().runningBotId === bot.id
+
+      if (!isRunning) {
         // Check if any other bots are running
-        const runningBots = bots.filter(b => b.isRunning && b.id !== bot.id)
-        if (runningBots.length > 0) {
+        const runningBotId = useSessionStore.getState().runningBotId
+        if (runningBotId && runningBotId !== bot.id) {
           addAlert('warning', 'Only one bot can run at a time. Please stop the running bot first.')
           return
         }
@@ -154,7 +156,6 @@ const Bots: React.FC = () => {
         const response = await window.electron.ipcRenderer.invoke('launch-bot', bot.id, bot.name)
         if (response.success) {
           toggleBot(bot.id)
-          updateBot(bot.id, { isActive: true })
           addLog('Bot started successfully')
         } else {
           console.error('Failed to start bot:', response.error)
@@ -166,12 +167,10 @@ const Bots: React.FC = () => {
         const response = await window.electron.ipcRenderer.invoke('close-bot-window', bot.id)
         if (response.success) {
           toggleBot(bot.id)
-          updateBot(bot.id, { isActive: false })
           addAlert('success', 'Bot stopped successfully')
         } else if (response.error === 'Window not found') {
           // If window is already closed, just update the state
           toggleBot(bot.id)
-          updateBot(bot.id, { isActive: false })
           addAlert('info', 'Bot window was already closed')
         } else {
           console.error('Failed to stop bot:', response.error)
@@ -567,13 +566,13 @@ const Bots: React.FC = () => {
                 <button
                   onClick={toggleBotRunning}
                   className={`btn btn-lg ${
-                    bot.isRunning
+                    useSessionStore.getState().runningBotId === bot.id
                       ? 'btn-error hover:btn-error'
                       : 'btn-success hover:btn-success'
                   } min-w-[150px]`}
                 >
                   <div className="flex items-center gap-2">
-                    {bot.isRunning ? (
+                    {useSessionStore.getState().runningBotId === bot.id ? (
                       <>
                         <span className="relative flex h-3 w-3">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-error-content opacity-75"></span>
@@ -599,7 +598,7 @@ const Bots: React.FC = () => {
         <div className="flex flex-col flex-1 min-h-0 relative">
           <div className={getMainContentClassName()}>
             {/* Left Side - Master Account */}
-            <MasterAccountCard 
+            <MasterAccountCard
               bot={bot}
               onUpdate={(updates) => updateBot(bot.id, updates)}
               onAddLog={addLog}

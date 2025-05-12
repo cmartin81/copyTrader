@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { Bot, MasterAccount } from '../types/bot'
+import { useSessionStore } from './sessionStore'
 
 export interface MasterAccount {
   type: 'PropFirm' | 'Personal' | 'Rithmic' | 'Test'
@@ -15,8 +16,6 @@ export interface MasterAccount {
 export interface Bot {
   id: string
   name: string
-  isRunning: boolean
-  isActive: boolean
   pnl: number
   avatar?: string
   targetAccounts: {
@@ -45,12 +44,14 @@ export interface Bot {
 export interface BotStore {
   bots: Bot[]
   masterAccounts: MasterAccount[]
-  addBot: (bot: Omit<Bot, 'id' | 'isRunning' | 'isActive' | 'pnl'>) => Promise<Bot>
+  addBot: (bot: Omit<Bot, 'id' | 'pnl'>) => Promise<Bot>
   updateBot: (id: string, updates: Partial<Bot>) => Promise<void>
   deleteBot: (id: string) => Promise<void>
   addMasterAccount: (account: Omit<MasterAccount, 'id'>) => Promise<void>
   updateMasterAccount: (id: string, updates: Partial<MasterAccount>) => Promise<void>
   deleteMasterAccount: (id: string) => Promise<void>
+  toggleBot: (id: string) => void
+  updateBotPnl: (id: string, pnl: number) => void
 }
 
 export const useBotStore = create<BotStore>((set, get) => ({
@@ -60,8 +61,6 @@ export const useBotStore = create<BotStore>((set, get) => ({
     const newBot: Bot = {
       ...bot,
       id: crypto.randomUUID(),
-      isRunning: false,
-      isActive: false,
       pnl: 0
     }
     set((state) => ({
@@ -107,5 +106,23 @@ export const useBotStore = create<BotStore>((set, get) => ({
       masterAccounts: state.masterAccounts.filter((account) => account.id !== id)
     }))
     window.electron.ipcRenderer.send('set-master-accounts', get().masterAccounts)
+  },
+  toggleBot: (id) => {
+    const { runningBotId, setRunningBotId } = useSessionStore.getState()
+
+    // If this bot is already running, stop it
+    if (runningBotId === id) {
+      setRunningBotId(null)
+    } else {
+      // Otherwise, set this bot as running
+      setRunningBotId(id)
+    }
+  },
+  updateBotPnl: (id, pnl) => {
+    set((state) => ({
+      bots: state.bots.map((bot) =>
+        bot.id === id ? { ...bot, pnl } : bot
+      )
+    }))
   }
 }))

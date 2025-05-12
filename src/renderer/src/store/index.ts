@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import { AppState, SessionState } from '../../../shared/types'
+import { AppState } from '../../../shared/types'
 import { useBotStore } from './botStore'
+import { useSessionStore } from '@renderer/store/sessionStore'
 
 // App state store
 export const useAppStore = create<AppState>((set, get) => ({
@@ -15,15 +16,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     const currentState = get()
     set({ ...currentState, bots })
     window.store.setAppState({ ...currentState, bots })
-  }
-}))
-
-// Session state store
-export const useSessionStore = create<SessionState>((set) => ({
-  sessionCounter: 0,
-  setSessionCounter: (value: number) => {
-    set({ sessionCounter: value })
-    window.store.setSessionState({ sessionCounter: value })
   }
 }))
 
@@ -57,4 +49,4 @@ export const initializeStores = async (): Promise<void> => {
   } catch (error) {
     console.error('Failed to initialize stores:', error)
   }
-} 
+}

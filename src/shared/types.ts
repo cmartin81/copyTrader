@@ -1,12 +1,11 @@
 export interface SessionState {
   sessionCounter: number
+  runningBotId?: string | null
 }
 
 export interface Bot {
   id: string
   name: string
-  isRunning: boolean
-  isActive: boolean
   pnl: number
   avatar?: string
   targetAccounts: {

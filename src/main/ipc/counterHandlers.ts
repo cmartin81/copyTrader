@@ -33,4 +33,4 @@ export function setupCounterHandlers(
     setAppState(newState)
     logToFile(`App counter decremented to: ${newState.appCounter}`)
   })
-} 
+}

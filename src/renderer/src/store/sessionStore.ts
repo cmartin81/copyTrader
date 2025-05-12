@@ -10,12 +10,15 @@ interface Alert {
 
 interface SessionState {
   alerts: Alert[]
+  runningBotId: string | null
   addAlert: (type: AlertType, message: string) => void
   removeAlert: (id: string) => void
+  setRunningBotId: (botId: string | null) => void
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
   alerts: [],
+  runningBotId: null,
   addAlert: (type, message): void => {
     const id = Math.random().toString(36).substring(7)
     set((state) => ({
@@ -32,5 +35,8 @@ export const useSessionStore = create<SessionState>((set) => ({
     set((state) => ({
       alerts: state.alerts.filter((alert) => alert.id !== id)
     }))
+  },
+  setRunningBotId: (botId): void => {
+    set({ runningBotId: botId })
   }
-})) 
+}))

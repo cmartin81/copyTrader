@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useAppStore, useSessionStore } from '../store'
+import { useAppStore } from '../store'
+import { useSessionStore } from '@renderer/store/sessionStore'
 
 const Counters = (): JSX.Element => {
   const appCounter = useAppStore((state) => state.appCounter)
@@ -86,4 +87,4 @@ const Counters = (): JSX.Element => {
   )
 }
 
-export default Counters 
+export default Counters

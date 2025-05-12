@@ -17,21 +17,21 @@ import Bots from './pages/Bots'
 function App(): JSX.Element {
   const { theme } = useSettingsStore()
   const [initialized, setInitialized] = useState(false)
-  
+
   useEffect(() => {
     const init = async (): Promise<void> => {
       await initializeStores()
       setInitialized(true)
     }
-    
+
     init().catch(console.error)
   }, [])
-  
+
   useEffect(() => {
     // Apply theme from settings store
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
-  
+
   // Show loading until stores are initialized
   if (!initialized) {
     return (

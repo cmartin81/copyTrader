@@ -151,7 +151,7 @@ const MainLayout = (): JSX.Element => {
                                 )}
                               </div>
                               <span className="font-medium tracking-wide text-sm pl-2">{bot.name}</span>
-                              {bot.isRunning && (
+                              {useSessionStore.getState().runningBotId === bot.id && (
                                 <span className="ml-auto h-3 w-3 bg-success rounded-full border-2 border-base-100 animate-pulse"></span>
                               )}
                             </>

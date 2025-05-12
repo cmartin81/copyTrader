@@ -17,4 +17,4 @@ export function broadcastState(): void {
   if (mainWindowRef && sessionStateRef) {
     mainWindowRef.webContents.send('state-updated', sessionStateRef, getAppState())
   }
-} 
+}

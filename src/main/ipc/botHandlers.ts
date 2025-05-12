@@ -22,13 +22,20 @@ export function setupBotHandlers(activeBrowsers: Map<string, BrowserWindow>): vo
 
   ipcMain.handle('close-bot-window', async (event, botId) => {
     try {
+      // First, stop the bot using botManager
+      const botManager = BotManager.getInstance()
+      if (botManager.getCurrentBotId() === botId) {
+        await botManager.stop()
+      }
+
+      // Then close the browser window if it exists
       const botWindow = activeBrowsers.get(botId)
       if (botWindow) {
         botWindow.close()
         activeBrowsers.delete(botId)
-        return { success: true }
       }
-      return { success: false, error: 'Window not found' }
+
+      return { success: true }
     } catch (error) {
       console.error('Error closing bot window:', error)
       return {
@@ -43,8 +50,6 @@ export function setupBotHandlers(activeBrowsers: Map<string, BrowserWindow>): vo
     const newBot = {
       id: botId,
       name: botName,
-      isRunning: false,
-      isActive: true,
       pnl: 0,
       targetAccounts: [],
       masterAccount: {
@@ -80,14 +85,12 @@ export function setupBotHandlers(activeBrowsers: Map<string, BrowserWindow>): vo
     })
   })
 
-  ipcMain.on('update-bot-status', (event, { botId, isActive }) => {
-    const currentState = getAppState()
-    const updatedBots = currentState.bots.map((bot) =>
-      bot.id === botId ? { ...bot, isActive } : bot
-    )
-    setAppState({
-      ...currentState,
-      bots: updatedBots
+  ipcMain.on('update-bot-status', (event, { botId, isRunning }) => {
+    // Update session state to track running bot
+    const sessionState = getSessionState()
+    setSessionState({
+      ...sessionState,
+      runningBotId: isRunning ? botId : null
     })
   })
 

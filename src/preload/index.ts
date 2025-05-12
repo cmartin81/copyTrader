@@ -6,7 +6,6 @@ interface Bot {
   id: string
   name: string
   pnl: number
-  isActive: boolean
 }
 
 interface StateUpdate {
@@ -21,15 +20,15 @@ const api = {
   getAppState: (): AppState => {
     return ipcRenderer.sendSync('store-send', { action: 'get', key: 'appState' })
   },
-  
+
   setAppState: (state: AppState): void => {
     ipcRenderer.sendSync('store-send', { action: 'set', key: 'appState', value: state })
   },
-  
+
   getSessionState: (): SessionState => {
     return ipcRenderer.sendSync('store-send', { action: 'get', key: 'sessionState' })
   },
-  
+
   setSessionState: (state: SessionState): void => {
     ipcRenderer.sendSync('store-send', { action: 'set', key: 'sessionState', value: state })
   },
