@@ -141,12 +141,12 @@ const Bots: React.FC = () => {
 
   const toggleBotRunning = async (): Promise<void> => {
     try {
-      const isRunning = useSessionStore.getState().runningBotId === bot.id
+      const isRunning = useSessionStore.getState().runningBot?.id === bot.id
 
       if (!isRunning) {
         // Check if any other bots are running
-        const runningBotId = useSessionStore.getState().runningBotId
-        if (runningBotId && runningBotId !== bot.id) {
+        const runningBot = useSessionStore.getState().runningBot
+        if (runningBot && runningBot.id !== bot.id) {
           addAlert('warning', 'Only one bot can run at a time. Please stop the running bot first.')
           return
         }
@@ -566,13 +566,13 @@ const Bots: React.FC = () => {
                 <button
                   onClick={toggleBotRunning}
                   className={`btn btn-lg ${
-                    useSessionStore.getState().runningBotId === bot.id
+                    useSessionStore.getState().runningBot?.id === bot.id
                       ? 'btn-error hover:btn-error'
                       : 'btn-success hover:btn-success'
                   } min-w-[150px]`}
                 >
                   <div className="flex items-center gap-2">
-                    {useSessionStore.getState().runningBotId === bot.id ? (
+                    {useSessionStore.getState().runningBot?.id === bot.id ? (
                       <>
                         <span className="relative flex h-3 w-3">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-error-content opacity-75"></span>
@@ -740,7 +740,35 @@ const Bots: React.FC = () => {
                   <div key={account.id} className="bg-base-200 rounded-lg p-4">
                     <div className="flex justify-between items-center mb-4">
                       <div>
-                        <h3 className="font-medium">{account.type} - {account.accountId}</h3>
+                        <h3 className="font-medium">
+                          {account.type} - {account.accountId}
+                          {useSessionStore.getState().runningBot?.id === bot.id && (
+                            (() => {
+                              const status = useSessionStore.getState().runningBot?.targetAccounts.find(ta => ta.id === account.id)?.status;
+                              let badgeClass = "ml-2 badge badge-sm ";
+
+                              switch(status) {
+                                case 'starting':
+                                  badgeClass += "badge-warning";
+                                  break;
+                                case 'running':
+                                  badgeClass += "badge-success";
+                                  break;
+                                case 'stopped':
+                                  badgeClass += "badge-error";
+                                  break;
+                                default:
+                                  badgeClass += "badge-ghost";
+                              }
+
+                              return (
+                                <span className={badgeClass}>
+                                  {status || 'unknown'}
+                                </span>
+                              );
+                            })()
+                          )}
+                        </h3>
                       </div>
                       <div className="flex gap-2">
                         <button

@@ -1,6 +1,20 @@
+export enum TargetAccountStatus {
+  STARTING = 'starting',
+  RUNNING = 'running',
+  STOPPED = 'stopped'
+}
+
+export interface RunningBot {
+  id: string
+  targetAccounts: {
+    id: string
+    status: TargetAccountStatus
+  }[]
+}
+
 export interface SessionState {
   sessionCounter: number
-  runningBotId?: string | null
+  runningBot?: RunningBot | null
 }
 
 export interface Bot {

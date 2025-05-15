@@ -1,4 +1,4 @@
-import { getAppState, setAppState } from '../../store'
+import { getAppState, setAppState, getSessionState, setSessionState } from '../../store'
 import _ from 'lodash'
 import { ProjectXBrowser } from '../projectX/ProjectXBrowser'
 import { AbstractTargetAccount } from '../projectX/abstractTargetAccount'
@@ -6,6 +6,8 @@ import { ipcMain } from 'electron'
 import { AbstractMasterAccount } from '../masterAccounts/AbstractMasterAccount'
 import { TestMasterAccount } from '../masterAccounts/testMasterAccount'
 import { RithmicWsMasterAccount } from "../masterAccounts/rithmic/RithmicWsMasterAccount";
+import { TargetAccountStatus } from '../../../shared/types';
+import { broadcastState } from '../../utils/broadcastState';
 
 class BotManager {
   private static instance: BotManager | null = null
@@ -68,6 +70,14 @@ class BotManager {
   public async stop(): Promise<void> {
     console.log('BotManager stopping all targets')
 
+    // Update all target account statuses to STOPPED
+    const sessionState = getSessionState();
+    if (sessionState.runningBot && sessionState.runningBot.id === this.currentBotId) {
+      for (const targetAccount of sessionState.runningBot.targetAccounts) {
+        this.updateTargetAccountStatus(targetAccount.id, TargetAccountStatus.STOPPED);
+      }
+    }
+
     // Close all target browsers
     for (const targetId in this.targets) {
       try {
@@ -91,6 +101,15 @@ class BotManager {
 
     // Clear targets
     this.targets = {}
+
+    // Clear running bot from session state
+    setSessionState({
+      ...sessionState,
+      runningBot: null
+    });
+
+    // Broadcast the state change to all renderer processes
+    broadcastState();
 
     // Reset state
     this.currentBotId = null
@@ -206,6 +225,26 @@ class BotManager {
     //   throw new Error('Cannot start bot Error #S99')
     // }
 
+    // Initialize session state with target accounts in STARTING status
+    const sessionState = getSessionState();
+    if (sessionState.runningBot && sessionState.runningBot.id === this.currentBotId) {
+      // Bot is already in session state, no need to initialize
+    } else {
+      // Create new running bot entry in session state
+      const targetAccountStatuses = this.botSettings.targetAccounts.map(ta => ({
+        id: ta.id,
+        status: TargetAccountStatus.STARTING
+      }));
+
+      setSessionState({
+        ...sessionState,
+        runningBot: {
+          id: this.currentBotId,
+          targetAccounts: targetAccountStatuses
+        }
+      });
+    }
+
     const masterAccount = this.botSettings.masterAccount
     if (masterAccount.type === 'Test') {
       this.masterAccount = new TestMasterAccount()
@@ -227,27 +266,57 @@ class BotManager {
     for (const targetAccount of this.botSettings.targetAccounts) {
       console.log('Starting bot for account: ' + targetAccount.type)
       if (['TopstepX', 'TopstepX', 'Bulenox', 'TheFuturesDesk', 'TickTickTrader'].includes(targetAccount.type)) {
-        const targetBrowser = await ProjectXBrowser.create(
-          targetAccount.type,
-          targetAccount.credentials.username,
-          targetAccount.credentials.password
-        )
-        await targetBrowser.start()
-        this.targets[targetAccount.id] = targetBrowser
+        try {
+          const targetBrowser = await ProjectXBrowser.create(
+            targetAccount.type,
+            targetAccount.credentials.username,
+            targetAccount.credentials.password
+          )
 
-        // const accounts = await targetBrowser.getAccounts()
-        // console.log({ accounts })
-        // targetAccount.accounts = accounts
-        // const appState = getAppState()
-        // const updatedBot = { ...this.botSettings }
-        // const updatedBots = appState.bots.map((bot) =>
-        //   bot.id === this.botSettings.id ? updatedBot : bot
-        // )
-        // console.log({ ...appState, bots: updatedBots })
-        // setAppState({ ...appState, bots: updatedBots })
+          // Update status to STARTING before browser starts
+          this.updateTargetAccountStatus(targetAccount.id, TargetAccountStatus.STARTING);
+
+          await targetBrowser.start()
+          this.targets[targetAccount.id] = targetBrowser
+
+          // Update status to RUNNING after browser is started
+          this.updateTargetAccountStatus(targetAccount.id, TargetAccountStatus.RUNNING);
+        } catch (error) {
+          console.error(`Error starting target account ${targetAccount.id}:`, error);
+          this.updateTargetAccountStatus(targetAccount.id, TargetAccountStatus.STOPPED);
+        }
       }
     }
     return true
+  }
+
+  // Helper method to update target account status in session state
+  private updateTargetAccountStatus(targetAccountId: string, status: TargetAccountStatus): void {
+    console.log(`[BotManager] Updating target account status: ${targetAccountId} -> ${status}`);
+
+    const sessionState = getSessionState();
+    if (!sessionState.runningBot || sessionState.runningBot.id !== this.currentBotId) {
+      console.log(`[BotManager] No running bot or bot ID mismatch. Current bot ID: ${this.currentBotId}, Running bot ID: ${sessionState.runningBot?.id}`);
+      return;
+    }
+
+    const updatedTargetAccounts = sessionState.runningBot.targetAccounts.map(ta =>
+      ta.id === targetAccountId ? { ...ta, status } : ta
+    );
+
+    console.log(`[BotManager] Setting session state with updated target accounts:`, updatedTargetAccounts);
+
+    setSessionState({
+      ...sessionState,
+      runningBot: {
+        ...sessionState.runningBot,
+        targetAccounts: updatedTargetAccounts
+      }
+    });
+
+    // Broadcast the state change to all renderer processes
+    console.log(`[BotManager] Broadcasting state change`);
+    broadcastState();
   }
 }
 

@@ -5,6 +5,8 @@ import { Browser } from 'puppeteer-core'
 import _ from 'lodash'
 import { Symbol } from './abstractTargetAccount'
 import { v4 as uuidv4 } from 'uuid'
+import BotManager from '../botManager/botManager'
+import { TargetAccountStatus } from '../../../shared/types'
 const puppeteer = require('puppeteer-core')
 
 export const PropFirmConfig = {
@@ -137,9 +139,30 @@ export class ProjectXBrowser extends AbstractTargetAccount {
 
     //await this.scheduleTasks()
 
-    //this.addCloseListener()
+    this.addCloseListener()
 
     // this.puppeteerBrowser.webContents.openDevTools();
+  }
+
+  private addCloseListener(): void {
+    // Add event listener for window close
+    this.puppeteerBrowser.on('closed', () => {
+      console.log(`[${this.exchangeName}] Browser window closed by user (Window ID: ${this.puppeteerBrowser?.id})`)
+
+      // Notify BotManager that this target account has been closed
+      // Use absolute path to avoid path resolution issues
+      const botManager = BotManager.getInstance();
+
+      // Find the target account ID for this browser
+      for (const [targetId, target] of Object.entries(botManager['targets'])) {
+        if (target === this) {
+          // Update the status to stopped
+          // Use absolute path to avoid path resolution issues
+          botManager['updateTargetAccountStatus'](targetId, TargetAccountStatus.STOPPED);
+          break;
+        }
+      }
+    });
   }
 
   static async create(

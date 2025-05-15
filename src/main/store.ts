@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import Store from 'electron-store'
-import { AppState } from '../shared/types'
+import { AppState, RunningBot } from '../shared/types'
 import { broadcastState } from './utils/broadcastState'
 
 interface StoreSchema {
@@ -39,18 +39,20 @@ export function updateAppCounter(value: number): void {
 // Session state (non-persistent, reset on app restart)
 let sessionState = {
   sessionCounter: 0,
-  runningBotId: null
+  runningBot: null
 }
 
 export function getSessionState() {
   return sessionState
 }
 
-export function setSessionState(state: { sessionCounter: number, runningBotId?: string | null }): void {
+export function setSessionState(state: { sessionCounter: number, runningBot?: RunningBot | null }): void {
   sessionState = {
     ...sessionState,
     ...state
   }
+  // Broadcast state changes to all renderer processes
+  broadcastState()
 }
 
 export function updateSessionCounter(value: number): void {
@@ -58,6 +60,8 @@ export function updateSessionCounter(value: number): void {
     ...sessionState,
     sessionCounter: value
   }
+  // Broadcast state changes to all renderer processes
+  broadcastState()
 }
 
 // Function to clear all state on app quit if needed

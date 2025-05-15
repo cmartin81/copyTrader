@@ -20,14 +20,14 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* App State Card */}
-      <div className="mb-8">
-        <AppStateCard />
-      </div>
-
       {/* Session State Card */}
       <div className="mb-8">
         <SessionStateCard />
+      </div>
+
+      {/* App State Card */}
+      <div className="mb-8">
+        <AppStateCard />
       </div>
 
       {/* Features Grid */}
@@ -96,4 +96,4 @@ const Dashboard: React.FC = () => {
   )
 }
 
-export default Dashboard 
+export default Dashboard

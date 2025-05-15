@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { RunningBot, TargetAccountStatus } from '../../../shared/types'
 
 export type AlertType = 'success' | 'error' | 'warning' | 'info'
 
@@ -10,15 +11,16 @@ interface Alert {
 
 interface SessionState {
   alerts: Alert[]
-  runningBotId: string | null
+  runningBot: RunningBot | null
   addAlert: (type: AlertType, message: string) => void
   removeAlert: (id: string) => void
-  setRunningBotId: (botId: string | null) => void
+  setRunningBot: (bot: RunningBot | null) => void
+  updateTargetAccountStatus: (targetAccountId: string, status: TargetAccountStatus) => void
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
   alerts: [],
-  runningBotId: null,
+  runningBot: null,
   addAlert: (type, message): void => {
     const id = Math.random().toString(36).substring(7)
     set((state) => ({
@@ -36,7 +38,21 @@ export const useSessionStore = create<SessionState>((set) => ({
       alerts: state.alerts.filter((alert) => alert.id !== id)
     }))
   },
-  setRunningBotId: (botId): void => {
-    set({ runningBotId: botId })
+  setRunningBot: (bot): void => {
+    set({ runningBot: bot })
+  },
+  updateTargetAccountStatus: (targetAccountId, status): void => {
+    set((state) => {
+      if (!state.runningBot) return state
+
+      return {
+        runningBot: {
+          ...state.runningBot,
+          targetAccounts: state.runningBot.targetAccounts.map(ta =>
+            ta.id === targetAccountId ? { ...ta, status } : ta
+          )
+        }
+      }
+    })
   }
 }))

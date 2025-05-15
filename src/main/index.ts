@@ -2,7 +2,7 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png'
-import { getAppState, setAppState, getSessionState, setSessionState } from './store'
+import { getAppState, setAppState, getSessionState, setSessionState, updateSessionCounter } from './store'
 import { SessionState } from '../shared/types'
 import pie from 'puppeteer-in-electron'
 import puppeteer from 'puppeteer-core'
@@ -12,10 +12,8 @@ import { logToFile, getLogsDirectory, createNewLogFile } from './utils/logger'
 import { setupAllIpcHandlers } from './ipc'
 import { setBroadcastStateRefs } from './utils/broadcastState'
 
-// Session state (non-persistent, reset on app restart)
-const sessionState: SessionState = {
-  sessionCounter: 0
-}
+// We'll use the session state from store.ts instead of creating a new one here
+// This helps avoid having multiple session state objects that can get out of sync
 
 // Reference to main window for broadcasting from interval
 let mainWindow: BrowserWindow | null = null
@@ -50,7 +48,7 @@ function createWindow(): void {
   })
 
   // Set up broadcast state references
-  setBroadcastStateRefs(mainWindow, sessionState)
+  setBroadcastStateRefs(mainWindow, getSessionState())
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
@@ -99,14 +97,15 @@ function createWindow(): void {
   }
 
   // Set up all IPC handlers
-  setupAllIpcHandlers(sessionState, activeBrowsers, mainWindow)
+  setupAllIpcHandlers(getSessionState(), activeBrowsers, mainWindow)
 
   // Set up interval to update counters every 10 seconds
   setInterval(() => {
     try {
-      // Update session counter
-      sessionState.sessionCounter += 10
-      console.log(`[Main] Auto-updated session counter to: ${sessionState.sessionCounter}`)
+      // Update session counter using the function from store.ts
+      const currentSessionState = getSessionState();
+      updateSessionCounter(currentSessionState.sessionCounter + 10)
+      console.log(`[Main] Auto-updated session counter to: ${getSessionState().sessionCounter}`)
 
       // Update app counter and bots
       const currentState = getAppState()
@@ -116,7 +115,9 @@ function createWindow(): void {
           ...currentState,
           appCounter: currentState.appCounter + 10,
           bots: currentState.bots?.map(bot => {
-            if (sessionState.runningBotId === bot.id) {
+            // Get the latest session state to check for running bot
+            const latestSessionState = getSessionState();
+            if (latestSessionState.runningBot?.id === bot.id) {
               return { ...bot, pnl: bot.pnl + 1 }
             }
             return bot

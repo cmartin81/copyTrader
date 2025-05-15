@@ -1,8 +1,9 @@
 import { BrowserWindow, ipcMain } from 'electron'
-import { getAppState, setAppState } from '../store'
+import { getAppState, setAppState, getSessionState, setSessionState } from '../store'
 import { logToFile } from '../utils/logger'
 import BotManager from '../services/botManager/botManager'
 import botManager from '../services/botManager/botManager'
+import { RunningBot, TargetAccountStatus } from '../../shared/types'
 
 export function setupBotHandlers(activeBrowsers: Map<string, BrowserWindow>): void {
   ipcMain.handle('launch-bot', async (event, botId, botName) => {
@@ -85,13 +86,31 @@ export function setupBotHandlers(activeBrowsers: Map<string, BrowserWindow>): vo
     })
   })
 
-  ipcMain.on('update-bot-status', (event, { botId, isRunning }) => {
+  ipcMain.on('update-bot-status', (event, { botId, isRunning, targetAccounts = [] }) => {
     // Update session state to track running bot
     const sessionState = getSessionState()
-    setSessionState({
-      ...sessionState,
-      runningBotId: isRunning ? botId : null
-    })
+
+    if (isRunning) {
+      // Create target account status entries for each target account
+      const targetAccountStatuses = targetAccounts.map(ta => ({
+        id: ta.id,
+        status: TargetAccountStatus.STARTING
+      }))
+
+      setSessionState({
+        ...sessionState,
+        runningBot: {
+          id: botId,
+          targetAccounts: targetAccountStatuses
+        }
+      })
+    } else {
+      // Clear the running bot when stopping
+      setSessionState({
+        ...sessionState,
+        runningBot: null
+      })
+    }
   })
 
   ipcMain.handle(

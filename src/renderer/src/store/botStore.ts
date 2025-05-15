@@ -108,14 +108,24 @@ export const useBotStore = create<BotStore>((set, get) => ({
     window.electron.ipcRenderer.send('set-master-accounts', get().masterAccounts)
   },
   toggleBot: (id) => {
-    const { runningBotId, setRunningBotId } = useSessionStore.getState()
+    const { runningBot, setRunningBot } = useSessionStore.getState()
+    const bot = get().bots.find(b => b.id === id)
 
     // If this bot is already running, stop it
-    if (runningBotId === id) {
-      setRunningBotId(null)
-    } else {
+    if (runningBot?.id === id) {
+      setRunningBot(null)
+    } else if (bot) {
       // Otherwise, set this bot as running
-      setRunningBotId(id)
+      // Create target account entries for the bot
+      const targetAccounts = bot.targetAccounts.map(ta => ({
+        id: ta.id,
+        status: 'starting' as const
+      }))
+
+      setRunningBot({
+        id,
+        targetAccounts
+      })
     }
   },
   updateBotPnl: (id, pnl) => {
