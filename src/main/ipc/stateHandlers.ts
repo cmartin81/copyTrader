@@ -1,5 +1,5 @@
 import { ipcMain, BrowserWindow } from 'electron'
-import { getAppState, setAppState } from '../store'
+import { getAppState, setAppState, getSessionState, setSessionState } from '../store'
 import { logToFile } from '../utils/logger'
 import { SessionState } from '../../shared/types'
 import { broadcastState } from '../utils/broadcastState'
@@ -9,6 +9,40 @@ export function setupStateHandlers(
   activeBrowsers: Map<string, BrowserWindow>,
   mainWindow: BrowserWindow | null
 ): void {
+  // Handler for store-send channel
+  ipcMain.on('store-send', (event, { action, key, value }) => {
+    try {
+      if (action === 'get') {
+        if (key === 'appState') {
+          event.returnValue = getAppState();
+        } else if (key === 'sessionState') {
+          event.returnValue = getSessionState();
+        } else {
+          console.error(`Unknown key for get action: ${key}`);
+          event.returnValue = null;
+        }
+      } else if (action === 'set') {
+        if (key === 'appState') {
+          setAppState(value);
+          // Notify BotManager of app state update
+          ipcMain.emit('bot-manager-store-update', value);
+          event.returnValue = true;
+        } else if (key === 'sessionState') {
+          setSessionState(value);
+          event.returnValue = true;
+        } else {
+          console.error(`Unknown key for set action: ${key}`);
+          event.returnValue = false;
+        }
+      } else {
+        console.error(`Unknown action: ${action}`);
+        event.returnValue = false;
+      }
+    } catch (error) {
+      console.error(`Error in store-send handler: ${error}`);
+      event.returnValue = false;
+    }
+  });
   ipcMain.handle('get-initial-state', () => {
     return {
       sessionState,
@@ -45,6 +79,6 @@ export function setupStateHandlers(
 
   ipcMain.on('state-updated', () => {
     logToFile('State updated')
-    broadcastState(mainWindow, sessionState)
+    broadcastState()
   })
-} 
+}

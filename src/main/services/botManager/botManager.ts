@@ -22,18 +22,25 @@ class BotManager {
   }
 
   private setupAppStateListener(): void {
-    // Listen for user updates on bot
-    ipcMain.on('store-send', (_event, { action, key, value }) => {
-      if (action === 'set' && key === 'appState' && this.currentBotId) {
-        this.botSettings = _.find(value.bots, { id: this.currentBotId })
-      }
-    })
+    // Listen for bot-manager-ready event to ensure this handler is set up after other handlers
+    setTimeout(() => {
+      // Listen for app state updates
+      ipcMain.on('bot-manager-store-update', (appStateOrEvent, maybeAppState) => {
+        // Handle both cases: when called with (event, appState) and when called with just (appState)
+        const appState = maybeAppState || appStateOrEvent;
 
-    ipcMain.on('set-bots', (_event, bots) => {
-      if (this.currentBotId) {
-        this.botSettings = _.find(bots, { id: this.currentBotId })
-      }
-    })
+        if (this.currentBotId && appState && appState.bots) {
+          this.botSettings = _.find(appState.bots, { id: this.currentBotId });
+        }
+      });
+
+      // Listen for user updates on bot
+      ipcMain.on('set-bots', (_event, bots) => {
+        if (this.currentBotId) {
+          this.botSettings = _.find(bots, { id: this.currentBotId });
+        }
+      });
+    }, 0);
   }
 
   public static getInstance(): BotManager {
