@@ -57,6 +57,13 @@ export interface Bot {
 export interface AppState {
   appCounter: number
   bots: Bot[]
+  user?: {
+    accessToken?: string
+    refreshToken?: string
+    username?: string
+    email?: string
+    isLoggedIn?: boolean
+  }
 }
 
 export interface CounterActions {

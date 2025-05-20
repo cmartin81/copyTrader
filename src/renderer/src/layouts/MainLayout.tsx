@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useBotStore } from '../store/botStore'
 import { useSessionStore } from '../store/sessionStore'
+import { useAppStore } from '../store'
 import Alert from '../components/Alert'
 import copyTraderLogo from '@renderer/assets/copyTraderLogo2.png'
 
@@ -12,13 +13,35 @@ interface MenuItem {
 }
 
 const MainLayout = (): JSX.Element => {
-  const [username] = useState('Admin User')
-  const [email] = useState('admin@xlink.com')
   const [isAddBotModalOpen, setIsAddBotModalOpen] = useState(false)
   const [newBotName, setNewBotName] = useState('')
   const { bots, addBot } = useBotStore()
   const { alerts, removeAlert } = useSessionStore()
   const navigate = useNavigate()
+
+  // Get user data from app state
+  const appState = window.store.getAppState()  //todo: ikke riktig måte å hente opp
+  const username = appState.user?.username || 'User'
+  const email = appState.user?.email || 'Product X'
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      // Call the main process logout method
+      const result = await window.store.logout();
+
+      if (result.success) {
+        // Navigate to login page (AuthGuard will handle this, but we'll do it explicitly)
+        navigate('/login');
+      } else {
+        console.error('Logout failed:', result.error);
+        // You could show an error message here
+      }
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // You could show an error message here
+    }
+  }
 
   const handleAddBot = async (): Promise<void> => {
     if (newBotName.trim()) {
@@ -204,7 +227,10 @@ const MainLayout = (): JSX.Element => {
                 </button>
               </li>
               <li>
-                <button className="flex items-center gap-2 text-base-content/70 hover:bg-base-content/5 hover:text-base-content">
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 text-base-content/70 hover:bg-base-content/5 hover:text-base-content"
+                >
                   <svg
                     className="w-4 h-4 text-base-content/50"
                     fill="none"

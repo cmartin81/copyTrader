@@ -7,6 +7,7 @@ import { setupPuppeteerHandlers } from './puppeteerHandlers'
 import { setupAccountHandlers } from './accountHandlers'
 import { setupLogHandlers } from './logHandlers'
 import { setupSecurityHandlers } from './securityHandlers'
+import { setupAuthHandlers } from './authHandlers'
 
 export function setupAllIpcHandlers(
   sessionState: SessionState,
@@ -19,4 +20,5 @@ export function setupAllIpcHandlers(
   setupAccountHandlers()
   setupLogHandlers()
   setupSecurityHandlers()
+  setupAuthHandlers()
 }

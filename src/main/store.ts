@@ -13,7 +13,8 @@ const appStore = new Store<StoreSchema>({
   defaults: {
     appState: {
       appCounter: 0,
-      bots: []
+      bots: [],
+      user: undefined
     }
   }
 })

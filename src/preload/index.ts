@@ -80,6 +80,15 @@ const api = {
   // Logs directory methods
   openLogsDirectory: (): void => {
     ipcRenderer.send('open-logs-directory')
+  },
+
+  // Authentication methods
+  login: async (): Promise<{ success: boolean; error?: string }> => {
+    return ipcRenderer.invoke('auth:login')
+  },
+
+  logout: async (): Promise<{ success: boolean; error?: string }> => {
+    return ipcRenderer.invoke('auth:logout')
   }
 }
 
@@ -94,7 +103,7 @@ if (process.contextIsolated) {
     })
     contextBridge.exposeInMainWorld('store', api)
   } catch (error) {
-    console.error(error)
+    console.error('Error exposing APIs via contextBridge:', error);
   }
 } else {
   // @ts-ignore (define in dts)
