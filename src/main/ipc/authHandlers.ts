@@ -30,7 +30,7 @@ export function setupAuthHandlers(): void {
       logToFile('User logged in successfully');
 
       return { success: true };
-    } catch (error) {
+    } catch (error:any) {
       console.error('Error during login:', error);
       logToFile(`Login error: ${error.message}`);
       return {

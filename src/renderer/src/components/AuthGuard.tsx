@@ -41,8 +41,13 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         }
       };
 
-      // Add listener
+      // Add listener for app state updates
       window.store.onAppStateUpdate(handleAppStateChange);
+
+      // Add listener for combined state updates (this is what broadcastState triggers)
+      window.store.onStateUpdate((_sessionState, appState) => {
+        handleAppStateChange(appState);
+      });
 
       // Clean up listener on unmount
       return () => {
