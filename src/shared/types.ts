@@ -60,6 +60,7 @@ export interface AppState {
   user?: {
     accessToken?: string
     refreshToken?: string
+    expirationTime?: number
     username?: string
     email?: string
     isLoggedIn?: boolean

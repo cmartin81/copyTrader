@@ -83,8 +83,12 @@ const api = {
   },
 
   // Authentication methods
-  login: async (): Promise<{ success: boolean; error?: string }> => {
-    return ipcRenderer.invoke('auth:login')
+  loginFake: async (): Promise<{ success: boolean; error?: string }> => {
+    return ipcRenderer.invoke('auth:login-fake')
+  },
+
+  login: async (accessToken: string, refreshToken: string | null, expirationTime: number | null): Promise<{ success: boolean; error?: string }> => {
+    return ipcRenderer.invoke('auth:login', { accessToken, refreshToken, expirationTime })
   },
 
   logout: async (): Promise<{ success: boolean; error?: string }> => {

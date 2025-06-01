@@ -5,14 +5,25 @@ import { useAppStore } from '../store';
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const redirectTo = import.meta.env.VITE_REDIRECT_TO
+  const clientId = import.meta.env.VITE_CLIENT_ID
 
+  const handleWhopLogin = async () => {
+    console.log({
+      redirectTo,
+      clientId
+    })
+
+    const url = `https://whop.com/oauth?client_id=${clientId}&redirect_uri=${redirectTo}`
+    window.location.href = url
+  }
   const handleFakeLogin = async () => {
     try {
       // Set loading state to show spinner
       setIsLoading(true);
 
-      // Call the main process login method
-      const result = await window.store.login();
+      // Call the main process fake login method
+      const result = await window.store.loginFake();
 
       if (result.success) {
         // Navigate to dashboard on success
@@ -39,6 +50,9 @@ const Login: React.FC = () => {
         </div>
 
         <div className="mt-8">
+          <button
+            onClick={handleWhopLogin}
+            className="w-full btn btn-primary mb-1">Whop</button>
           <button
             onClick={handleFakeLogin}
             className="w-full btn btn-primary"

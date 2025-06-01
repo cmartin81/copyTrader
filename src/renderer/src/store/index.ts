@@ -1,12 +1,20 @@
 import { create } from 'zustand'
-import { AppState } from '../../../shared/types'
+import { AppState, Bot } from '../../../shared/types'
 import { useBotStore } from './botStore'
 import { useSessionStore } from '@renderer/store/sessionStore'
 
 // App state store
-export const useAppStore = create<AppState>((set, get) => ({
+export const useAppStore = create<AppState & {
+  setAppCounter: (value: number) => void
+  setBots: (bots: Bot[]) => void
+  setAccessToken: (token: string | null) => void
+  setRefreshToken: (token: string | null) => void
+  setExpirationTime: (time: number) => void
+  setUser: (user: AppState['user']) => void
+}>((set, get) => ({
   appCounter: 0,
   bots: [],
+  user: undefined,
   setAppCounter: (value: number) => {
     const currentState = get()
     set({ ...currentState, appCounter: value })
@@ -16,6 +24,32 @@ export const useAppStore = create<AppState>((set, get) => ({
     const currentState = get()
     set({ ...currentState, bots })
     window.store.setAppState({ ...currentState, bots })
+  },
+  setAccessToken: (token: string | null) => {
+    const currentState = get()
+    const user = currentState.user || {}
+    const updatedUser = { ...user, accessToken: token || undefined, isLoggedIn: !!token }
+    set({ ...currentState, user: updatedUser })
+    window.store.setAppState({ ...currentState, user: updatedUser })
+  },
+  setRefreshToken: (token: string | null) => {
+    const currentState = get()
+    const user = currentState.user || {}
+    const updatedUser = { ...user, refreshToken: token || undefined }
+    set({ ...currentState, user: updatedUser })
+    window.store.setAppState({ ...currentState, user: updatedUser })
+  },
+  setExpirationTime: (time: number) => {
+    const currentState = get()
+    const user = currentState.user || {}
+    const updatedUser = { ...user, expirationTime: time }
+    set({ ...currentState, user: updatedUser })
+    window.store.setAppState({ ...currentState, user: updatedUser })
+  },
+  setUser: (user) => {
+    const currentState = get()
+    set({ ...currentState, user })
+    window.store.setAppState({ ...currentState, user })
   }
 }))
 

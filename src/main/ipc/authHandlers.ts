@@ -3,8 +3,8 @@ import { getAppState, setAppState } from '../store';
 import { logToFile } from '../utils/logger';
 
 export function setupAuthHandlers(): void {
-  // Handle login request from renderer process
-  ipcMain.handle('auth:login', async () => {
+  // Handle fake login request from renderer process
+  ipcMain.handle('auth:login-fake', async () => {
     try {
       // Get current app state
       const currentState = getAppState();
@@ -27,12 +27,47 @@ export function setupAuthHandlers(): void {
       // Update app state
       setAppState(updatedState);
 
-      logToFile('User logged in successfully');
+      logToFile('User logged in with fake credentials');
 
       return { success: true };
     } catch (error:any) {
-      console.error('Error during login:', error);
-      logToFile(`Login error: ${error.message}`);
+      console.error('Error during fake login:', error);
+      logToFile(`Fake login error: ${error.message}`);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'An unknown error occurred'
+      };
+    }
+  });
+
+  // Handle real OAuth login request from renderer process
+  ipcMain.handle('auth:login', async (_event, { accessToken, refreshToken, expirationTime }) => {
+    try {
+      console.log({ accessToken, refreshToken, expirationTime})
+
+      // Get current app state
+      const currentState = getAppState();
+
+      // Set user data with provided tokens
+      const updatedState = {
+        ...currentState,
+        user: {
+          accessToken,
+          refreshToken,
+          expirationTime,
+          isLoggedIn: true
+        }
+      };
+
+      // Update app state
+      setAppState(updatedState);
+
+      logToFile('User logged in with OAuth tokens');
+
+      return { success: true };
+    } catch (error:any) {
+      console.error('Error during OAuth login:', error);
+      logToFile(`OAuth login error: ${error.message}`);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'An unknown error occurred'

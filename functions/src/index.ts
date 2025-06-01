@@ -56,7 +56,7 @@ const _oauthCallback = (
       code: req.query.code,
       client_id: oauthKey,
       client_secret: oauthSecret,
-      redirect_uri: serverCallbackUrl
+      redirect_uri: serverCallbackUrl.value()
     }
     console.log('new request')
     console.log(payload)

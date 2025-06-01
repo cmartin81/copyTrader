@@ -17,6 +17,7 @@ import Login from './pages/Login'
 
 // Components
 import AuthGuard from './components/AuthGuard'
+import { AuthCallbackPage } from '@renderer/pages/authCallback'
 
 function App(): JSX.Element {
   const { theme } = useSettingsStore()
@@ -66,8 +67,8 @@ function App(): JSX.Element {
     <HashRouter>
       <Routes>
         {/* Public routes */}
+        <Route path="/auth-callback" element={<AuthCallbackPage />} />
         <Route path="/login" element={<Login />} />
-
         {/* Protected routes */}
         <Route element={<AuthGuard />}>
           <Route path="/" element={<MainLayout />}>
