@@ -14,7 +14,8 @@ const appStore = new Store<StoreSchema>({
     appState: {
       appCounter: 0,
       bots: [],
-      user: undefined
+      user: undefined,
+      windowConfig: undefined
     }
   }
 })

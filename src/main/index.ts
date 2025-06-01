@@ -34,10 +34,16 @@ createNewLogFile()
 logToFile('Application started')
 
 function createWindow(): void {
-  // Create the browser window.
+  // Get saved window configuration from AppState
+  const appState = getAppState()
+  const savedWindowConfig = appState.windowConfig
+
+  // Create the browser window with saved size and position if available
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: savedWindowConfig?.width || 1200,
+    height: savedWindowConfig?.height || 800,
+    x: savedWindowConfig?.x,
+    y: savedWindowConfig?.y,
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -77,6 +83,16 @@ function createWindow(): void {
     } else {
       console.log('Bot windows already closed, continuing with close')
       logToFile('Bot windows already closed, continuing with close in main window close event')
+    }
+
+    // Save window size and position before closing
+    if (mainWindow) {
+      const currentState = getAppState()
+      setAppState({
+        ...currentState,
+        windowConfig:  mainWindow.getBounds()
+      })
+      logToFile('Window configuration saved before closing')
     }
 
     // Now close the window

@@ -65,6 +65,12 @@ export interface AppState {
     email?: string
     isLoggedIn?: boolean
   }
+  windowConfig?: {
+    width: number
+    height: number
+    x: number
+    y: number
+  }
 }
 
 export interface CounterActions {
