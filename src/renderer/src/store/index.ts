@@ -10,6 +10,7 @@ export const useAppStore = create<AppState & {
   setAccessToken: (token: string | null) => void
   setRefreshToken: (token: string | null) => void
   setExpirationTime: (time: number) => void
+  setLicenseKey: (key: string | null) => void
   setUser: (user: AppState['user']) => void
 }>((set, get) => ({
   appCounter: 0,
@@ -43,6 +44,13 @@ export const useAppStore = create<AppState & {
     const currentState = get()
     const user = currentState.user || {}
     const updatedUser = { ...user, expirationTime: time }
+    set({ ...currentState, user: updatedUser })
+    window.store.setAppState({ ...currentState, user: updatedUser })
+  },
+  setLicenseKey: (key: string | null) => {
+    const currentState = get()
+    const user = currentState.user || {}
+    const updatedUser = { ...user, licenseKey: key || undefined }
     set({ ...currentState, user: updatedUser })
     window.store.setAppState({ ...currentState, user: updatedUser })
   },

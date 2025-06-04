@@ -12,8 +12,10 @@ import Dashboard from './pages/Dashboard'
 import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
 import KitchenSink from './pages/KitchenSink'
+import TestPage from './pages/TestPage'
 import Bots from './pages/Bots'
 import Login from './pages/Login'
+import LicensePage from './pages/licensePage'
 
 // Components
 import AuthGuard from './components/AuthGuard'
@@ -79,6 +81,8 @@ function App(): JSX.Element {
             </Route>
             <Route path="analytics" element={<Analytics />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="license" element={<LicensePage />} />
+            <Route path="test" element={<TestPage />} />
             <Route path="kitchen-sink" element={<KitchenSink />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

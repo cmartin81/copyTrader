@@ -65,7 +65,7 @@ const Settings: React.FC = () => {
     try {
       // Clear all bots from Zustand store
       bots.forEach(bot => deleteBot(bot.id))
-      
+
       // Reset settings in main process
       const response = await window.electron.ipcRenderer.invoke('reset-all-settings')
       if (response.success) {
@@ -83,11 +83,11 @@ const Settings: React.FC = () => {
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-8">Settings</h1>
-      
+
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
           <h2 className="card-title mb-4">Appearance</h2>
-          
+
           <div className="form-control w-full max-w-xs">
             <label className="label">
               <span className="label-text">Theme</span>
@@ -109,22 +109,22 @@ const Settings: React.FC = () => {
           </div>
         </div>
       </div>
-      
+
       <div className="card bg-base-100 shadow-xl mt-8">
         <div className="card-body">
           <h2 className="card-title mb-4">Ngrok Configuration</h2>
           <p className="mb-6 opacity-70">
             Configure Ngrok to expose your local endpoints for webhook callbacks.
           </p>
-          
+
           <div className="form-control w-full max-w-md">
             <label className="label">
               <span className="label-text">Auth Token</span>
             </label>
-            <input 
-              type="password" 
-              placeholder="Enter your Ngrok auth token" 
-              className="input input-bordered w-full" 
+            <input
+              type="password"
+              placeholder="Enter your Ngrok auth token"
+              className="input input-bordered w-full"
               value={ngrokAuthToken}
               onChange={(e) => setNgrokAuthToken(e.target.value)}
             />
@@ -132,15 +132,15 @@ const Settings: React.FC = () => {
               <span className="label-text-alt">You can find this in your Ngrok dashboard</span>
             </label>
           </div>
-          
+
           <div className="form-control w-full max-w-md mt-4">
             <label className="label">
               <span className="label-text">URL</span>
             </label>
-            <input 
-              type="text" 
-              placeholder="Your Ngrok URL (e.g., https://abc123.ngrok.io)" 
-              className="input input-bordered w-full" 
+            <input
+              type="text"
+              placeholder="Your Ngrok URL (e.g., https://abc123.ngrok.io)"
+              className="input input-bordered w-full"
               value={ngrokUrl}
               onChange={(e) => setNgrokUrl(e.target.value)}
             />
@@ -148,10 +148,10 @@ const Settings: React.FC = () => {
               <span className="label-text-alt">The URL provided by Ngrok when you start a tunnel</span>
             </label>
           </div>
-          
+
           <div className="mt-6">
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               onClick={handleSaveSettings}
               disabled={!ngrokAuthToken || !ngrokUrl}
             >
@@ -160,15 +160,31 @@ const Settings: React.FC = () => {
           </div>
         </div>
       </div>
-      
+
+      <div className="card bg-base-100 shadow-xl mt-8">
+        <div className="card-body">
+          <h2 className="card-title">License</h2>
+          <p className="opacity-70 mb-4">Manage your license settings</p>
+
+          <div className="flex flex-col sm:flex-row gap-4">
+            <button
+              className="btn btn-primary"
+              onClick={() => window.location.hash = '/license'}
+            >
+              Change License
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="card bg-base-100 shadow-xl mt-8">
         <div className="card-body">
           <h2 className="card-title text-error">Danger Zone</h2>
           <p className="opacity-70 mb-4">Destructive actions that cannot be reversed</p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4">
-            <button 
-              className="btn btn-outline btn-warning" 
+            <button
+              className="btn btn-outline btn-warning"
               onClick={() => setShowResetConfirmation(true)}
             >
               Reset All Settings
@@ -188,14 +204,14 @@ const Settings: React.FC = () => {
             <li>Reset all application settings</li>
           </ul>
           <div className="modal-action">
-            <button 
-              className="btn btn-ghost" 
+            <button
+              className="btn btn-ghost"
               onClick={() => setShowResetConfirmation(false)}
             >
               Cancel
             </button>
-            <button 
-              className="btn btn-warning" 
+            <button
+              className="btn btn-warning"
               onClick={handleResetSettings}
             >
               Yes, Reset Everything
@@ -207,4 +223,4 @@ const Settings: React.FC = () => {
   )
 }
 
-export default Settings 
+export default Settings

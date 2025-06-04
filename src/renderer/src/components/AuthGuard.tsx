@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
+ import { useAppStore } from '@renderer/store'
 
 interface AuthGuardProps {
   children?: React.ReactNode;
@@ -10,6 +11,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const user = useAppStore((state) => state.user)
 
   // Get login state safely
   useEffect(() => {
@@ -19,9 +21,8 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         return;
       }
 
-      const appState = window.store.getAppState();
-      setIsLoggedIn(!!appState.user?.isLoggedIn);
-    } catch (err) {
+      setIsLoggedIn(!!user?.isLoggedIn);
+    } catch (err:any) {
       setError(`Authentication error: ${err.message}`);
     }
   }, []);
@@ -49,13 +50,9 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         handleAppStateChange(appState);
       });
 
-      // Clean up listener on unmount
-      return () => {
-        // This is a placeholder for cleanup
-        // In a real implementation, you would need to remove the listener
-      };
-    } catch (err) {
-      setError(`Listener error: ${err.message}`);
+      return () => {};
+    } catch (err:any) {
+      setError(`Listener error: ${err!.message}`);
     }
   }, [navigate, location.pathname]);
 

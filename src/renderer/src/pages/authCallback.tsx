@@ -5,6 +5,7 @@ import { LoadingPage } from '@renderer/pages/loadingPage';
 export function AuthCallbackPage() {
   const location = useLocation();
   const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
 
     const handleAuth = async () => {

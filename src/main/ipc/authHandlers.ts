@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import { getAppState, setAppState } from '../store';
 import { logToFile } from '../utils/logger';
+import WhopApiClient from '../services/whop/WhopApiClient'
 
 export function setupAuthHandlers(): void {
   // Handle fake login request from renderer process
@@ -43,11 +44,11 @@ export function setupAuthHandlers(): void {
   // Handle real OAuth login request from renderer process
   ipcMain.handle('auth:login', async (_event, { accessToken, refreshToken, expirationTime }) => {
     try {
-      console.log({ accessToken, refreshToken, expirationTime})
-
       // Get current app state
       const currentState = getAppState();
 
+      const whopClient = new WhopApiClient(accessToken)
+      whopClient.
       // Set user data with provided tokens
       const updatedState = {
         ...currentState,
