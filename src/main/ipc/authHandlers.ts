@@ -1,9 +1,17 @@
 import { ipcMain } from 'electron';
-import { getAppState, setAppState } from '../store';
+import { getAppState, setAppState, setLicense } from '../store'
 import { logToFile } from '../utils/logger';
-import WhopApiClient from '../services/whop/WhopApiClient'
+import WhopApiClient from '../services/whop/WhopApiClient';
+import { doAuthorization, logout } from '../services/auth'
 
 export function setupAuthHandlers(): void {
+  // Handle license key update from renderer process
+  ipcMain.handle('auth:set-license', async (_event, { licenseKey }) => {
+    setLicense(licenseKey)
+    logToFile('License key updated');
+    return { success: true };
+  });
+
   // Handle fake login request from renderer process
   ipcMain.handle('auth:login-fake', async () => {
     try {
@@ -47,12 +55,17 @@ export function setupAuthHandlers(): void {
       // Get current app state
       const currentState = getAppState();
 
-      const whopClient = new WhopApiClient(accessToken)
-      whopClient.
+      // Get licenseKey from appStore if it exists
+      const licenseKey = currentState.user?.licenseKey || '';
+
+      // Call doAuthorization with accessToken and licenseKey
+      const isAuthorized = await doAuthorization(accessToken, licenseKey);
+
       // Set user data with provided tokens
       const updatedState = {
         ...currentState,
         user: {
+          ...currentState.user,
           accessToken,
           refreshToken,
           expirationTime,
@@ -64,6 +77,14 @@ export function setupAuthHandlers(): void {
       setAppState(updatedState);
 
       logToFile('User logged in with OAuth tokens');
+
+      // If not authorized, return a special response to show license page
+      if (!isAuthorized) {
+        return {
+          success: true,
+          needsLicense: true
+        };
+      }
 
       return { success: true };
     } catch (error:any) {
@@ -78,29 +99,6 @@ export function setupAuthHandlers(): void {
 
   // Handle logout request from renderer process
   ipcMain.handle('auth:logout', async () => {
-    try {
-      // Get current app state
-      const currentState = getAppState();
-
-      // Remove user data
-      const updatedState = {
-        ...currentState,
-        user: undefined
-      };
-
-      // Update app state
-      setAppState(updatedState);
-
-      logToFile('User logged out successfully');
-
-      return { success: true };
-    } catch (error) {
-      console.error('Error during logout:', error);
-      logToFile(`Logout error: ${error.message}`);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'An unknown error occurred'
-      };
-    }
+    return await logout()
   });
 }

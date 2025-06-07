@@ -87,8 +87,12 @@ const api = {
     return ipcRenderer.invoke('auth:login-fake')
   },
 
-  login: async (accessToken: string, refreshToken: string | null, expirationTime: number | null): Promise<{ success: boolean; error?: string }> => {
+  login: async (accessToken: string, refreshToken: string | null, expirationTime: number | null): Promise<{ success: boolean; needsLicense?: boolean; error?: string }> => {
     return ipcRenderer.invoke('auth:login', { accessToken, refreshToken, expirationTime })
+  },
+
+  setLicense: async (licenseKey: string): Promise<{ success: boolean; error?: string }> => {
+    return ipcRenderer.invoke('auth:set-license', { licenseKey })
   },
 
   logout: async (): Promise<{ success: boolean; error?: string }> => {

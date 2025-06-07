@@ -32,7 +32,13 @@ export function AuthCallbackPage() {
         );
 
         if (result.success) {
-          window.location.href = '/#/';
+          if (result.needsLicense) {
+            // Redirect to license page if license is needed
+            window.location.href = '/#/license';
+          } else {
+            // Redirect to home page if login is successful and license is not needed
+            window.location.href = '/#/';
+          }
         } else {
           throw new Error(result.error || 'Login failed');
         }

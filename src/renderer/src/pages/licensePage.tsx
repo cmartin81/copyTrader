@@ -5,10 +5,7 @@ import WhopApiClient from "../services/WhopApiClient";
 
 const LicensePage: React.FC = () => {
   const accessToken = useAppStore((state) => state.user?.accessToken);
-  // const setLicenseKey = useAppStore((state) => state.setLicenseKey);
-  // const setAccessToken = useAppStore(state => state.setAccessToken);
-  // const setRefreshToken = useAppStore(state => state.setRefreshToken);
-  // const setExpirationTime = useAppStore(state => state.setExpirationTime);
+  const setLicenseKey = useAppStore((state) => state.setLicenseKey);
 
   const handleLogout = () => {
     // setAccessToken(null)
@@ -44,13 +41,55 @@ const LicensePage: React.FC = () => {
     // setLicenseKey(null);
   // }, []);
 
-  // const handleChooseLicense = (key: string) => {
-  //   setLicenseKey(key);
-  //   navigate("/");
-  // };
+  const handleChooseLicense = async (key: string) => {
+    try {
+      // Call the main process to set the license key
+      const result = await window.store.setLicense(key);
+
+      if (result.success) {
+        const currentUser = useAppStore.getState().user;
+        const accessToken = currentUser?.accessToken;
+        const refreshToken = currentUser?.refreshToken;
+        const expirationTime = currentUser?.expirationTime;
+
+        if (!accessToken) {
+          console.error('No access token available');
+          navigate("/login");
+          return;
+        }
+
+        // Call auth:login again with the current tokens
+        const loginResult = await window.store.login(
+          accessToken,
+          refreshToken || null,
+          expirationTime || null
+        );
+        console.log(loginResult)
+
+        // Redirect based on the login result
+        if (loginResult.success) {
+          if (loginResult.needsLicense) {
+            // If still needs license (should not happen), stay on license page
+            console.warn('Still needs license after setting license key');
+          } else {
+            // If login is successful and license is not needed, redirect to home
+            window.location.href = '/#/';
+          }
+        } else {
+          console.error('Login failed after setting license:', loginResult.error);
+          navigate("/login");
+        }
+      } else {
+        console.error('Failed to set license key:', result.error);
+      }
+    } catch (error) {
+      console.error('Error setting license key:', error);
+      navigate("/login");
+    }
+  };
 
   return (
-    <div className="flex-1 p-8 bg-black text-white min-h-screen flex flex-col items-center">
+    <div className="fixed inset-0 w-full h-full p-8 bg-black text-white flex flex-col items-center justify-center overflow-auto">
       <h1 className="text-4xl font-bold mb-8">Please choose a license</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl mb-8">

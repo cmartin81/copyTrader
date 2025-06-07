@@ -71,6 +71,7 @@ function App(): JSX.Element {
         {/* Public routes */}
         <Route path="/auth-callback" element={<AuthCallbackPage />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/license" element={<LicensePage />} />
         {/* Protected routes */}
         <Route element={<AuthGuard />}>
           <Route path="/" element={<MainLayout />}>
@@ -81,7 +82,6 @@ function App(): JSX.Element {
             </Route>
             <Route path="analytics" element={<Analytics />} />
             <Route path="settings" element={<Settings />} />
-            <Route path="license" element={<LicensePage />} />
             <Route path="test" element={<TestPage />} />
             <Route path="kitchen-sink" element={<KitchenSink />} />
             <Route path="*" element={<Navigate to="/" replace />} />

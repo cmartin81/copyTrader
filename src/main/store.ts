@@ -15,7 +15,7 @@ const appStore = new Store<StoreSchema>({
       appCounter: 0,
       bots: [],
       user: undefined,
-      windowConfig: undefined
+      windowConfig: undefined,
     }
   }
 })
@@ -42,6 +42,22 @@ export function updateAppCounter(value: number): void {
 let sessionState = {
   sessionCounter: 0,
   runningBot: null
+}
+
+export function setLicense(licenseKey: string | null): void {
+  const currentState = getAppState();
+
+  // Update the license key in the user object
+  const updatedState = {
+    ...currentState,
+    user: {
+      ...currentState.user,
+      licenseKey
+    }
+  };
+
+  setAppState(updatedState);
+  broadcastState()
 }
 
 export function getSessionState() {

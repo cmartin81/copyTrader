@@ -64,7 +64,7 @@ export interface AppState {
     username?: string
     email?: string
     isLoggedIn?: boolean
-    licenseKey?: string
+    licenseKey?: string| null
   }
   windowConfig?: {
     width: number

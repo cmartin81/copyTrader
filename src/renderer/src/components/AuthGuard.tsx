@@ -20,6 +20,9 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         setError('Store API not available');
         return;
       }
+      // AuthCallback should only set the accesstoken then navigate to dashboard
+
+      // AuthGuard should call the login method!!! which will define if user is logged in or need to set license or in invalid...
 
       setIsLoggedIn(!!user?.isLoggedIn);
     } catch (err:any) {

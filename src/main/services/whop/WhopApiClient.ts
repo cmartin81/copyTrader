@@ -148,7 +148,10 @@ class WhopApiClient {
     try{
       // @ts-ignore
       const url = `${import.meta.env.VITE_URL_VALIDATE_LICENSE}?licenseKey=${licenseKey}&hwId=${hwId}`
+      console.log({ url })
+
       const response = await axios.get(url);
+      console.log({ response })
       return response.data;
     } catch (e) {
       return false
@@ -169,16 +172,22 @@ class WhopApiClient {
 
   public async checkOrRegisterLicense(hwId: string, currentOrNewLicense:string | null) {
     const existingLicense = await this.findLicenseOnHwId(hwId)
+    console.log(22)
+
     if (existingLicense) {
       return existingLicense;
     }
 
+    console.log(33)
+
     if (!currentOrNewLicense) {
       return false
     }
+    console.log(44)
 
-    const isValid =  await this.validateLicense(currentOrNewLicense, hwId)
+    const isValid = await this.validateLicense(currentOrNewLicense, hwId)
     if (isValid) {
+      console.log(55)
       return currentOrNewLicense
     }
     return false;
